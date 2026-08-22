@@ -1,0 +1,30 @@
+data:
+  data_dir: data/raw
+  manifest_dir: data/manifests
+  image_size: [256, 256]
+  batch_size: 2
+  num_workers: 0
+  horizontal_flip: 0.5
+  max_train_samples: 8
+  max_valid_samples: 4
+model:
+  name: panoptic_unet_small
+  in_channels: 3
+  expected_num_classes: 3
+  base_channels: 16
+loss:
+  semantic_weight: 1.0
+  center_weight: 200.0
+  offset_weight: 0.01
+  ignore_index: 255
+train:
+  epochs: 2
+  lr: 0.001
+  weight_decay: 0.0001
+  optimizer: adamw
+  amp: false
+  seed: 42
+  best_metric: pq
+device: auto
+output_dir: artifacts
+run_name: learning-minimal

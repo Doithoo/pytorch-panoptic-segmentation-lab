@@ -1,0 +1,14 @@
+classes:
+  - id: 0
+    name: background
+    isthing: false
+    color: [32, 32, 32]
+  - id: 1
+    name: person
+    isthing: true
+    color: [230, 80, 80]
+  - id: 2
+    name: road
+    isthing: false
+    color: [80, 120, 180]
+ignore_index: 255

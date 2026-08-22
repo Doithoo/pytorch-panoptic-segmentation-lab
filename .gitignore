@@ -1,0 +1,14 @@
+.worktrees/
+.venv/
+.DS_Store
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+data/raw/
+data/downloads/
+artifacts/
