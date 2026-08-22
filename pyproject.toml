@@ -34,6 +34,7 @@ dev = [
     "pytest>=8,<10",
     "ruff>=0.6,<1",
     "mypy>=1.15,<3",
+    "types-PyYAML>=6,<7",
     "build>=1.2,<2",
 ]
 plot = ["matplotlib>=3.6,<4"]
