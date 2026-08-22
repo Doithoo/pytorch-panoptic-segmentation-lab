@@ -4,7 +4,7 @@
 
 一个强调可读性与实验可复现性的 PyTorch 全景分割项目。基线模型同时预测语义类别、thing 中心热图和像素到中心的 offset，再把结果组合为 thing 实例与 stuff 区域。
 
-> 项目状态：本地流程和安装包流程已有测试覆盖，并提供了可直接提交的 Kaggle 合成数据参考任务，但尚未发布实际完成的 GPU 指标。进度见 [参考运行状态](docs/recorded-run/README.zh-CN.md)。内置 PQ 评估器适用于本项目“不含 crowd”的 mask 契约，不能替代具体数据集的 crowd 规则或官方评测服务器。
+> 项目状态：本地流程和安装包流程已有测试覆盖，确定性合成数据 Kaggle 参考任务也已成功完成。指标和证据见[参考运行](docs/recorded-run/README.zh-CN.md)。该结果是流程证据而不是真实数据 benchmark；内置 PQ 评估器适用于本项目“不含 crowd”的 mask 契约，不能替代具体数据集的 crowd 规则或官方评测服务器。
 
 ## 已实现能力
 

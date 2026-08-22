@@ -4,7 +4,7 @@
 
 A readable, reproducible PyTorch project for learning panoptic segmentation end to end. The baseline predicts semantic classes, thing centers, and per-pixel center offsets, then combines them into thing instances and stuff regions.
 
-> Project status: the local and packaged workflows are tested. A submit-ready Kaggle synthetic reference job is included, but its completed GPU metrics have not yet been published. See [recorded-run status](docs/recorded-run/README.md). The built-in PQ evaluator covers this project's non-crowd mask contract; it is not a replacement for dataset-specific crowd handling or an official benchmark server.
+> Project status: the local and packaged workflows are tested, and the deterministic synthetic Kaggle reference job completed successfully. See [recorded run](docs/recorded-run/README.md) for metrics and evidence. The result is workflow evidence rather than a real-data benchmark; the built-in PQ evaluator covers this project's non-crowd mask contract and is not a replacement for dataset-specific crowd handling or an official benchmark server.
 
 ## What is included
 

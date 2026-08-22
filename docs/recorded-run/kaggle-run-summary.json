@@ -1,0 +1,36 @@
+{
+  "status": "complete",
+  "gpu": "Tesla T4",
+  "python": "3.12.13",
+  "torch": "2.10.0+cu128",
+  "input": "/kaggle/working/synthetic-panoptic",
+  "split_counts": {
+    "train": 205,
+    "valid": 26,
+    "test": 25
+  },
+  "completed_epochs": 20,
+  "elapsed_seconds": 83.76186728477478,
+  "best_checkpoint_sha256": "30f7905f84fef4db783b6bca7185a1520f2fa5247fc80c23db7ca03c4d32a43a",
+  "test": {
+    "loss": 0.013968974687159061,
+    "pq": 0.8538805836336248,
+    "sq": 0.9739444906281577,
+    "rq": 0.869757174392936,
+    "pq_thing": 0.5616548869574752,
+    "pq_stuff": 0.9999934319716997,
+    "tp": 96.0,
+    "fp": 55.0,
+    "fn": 4.0,
+    "pq:class_0": 0.9999878591663294,
+    "sq:class_0": 0.9999878591663294,
+    "rq:class_0": 1.0,
+    "pq:class_1": 0.5616548869574752,
+    "sq:class_1": 0.9218466079410735,
+    "rq:class_1": 0.609271523178808,
+    "pq:class_2": 0.99999900477707,
+    "sq:class_2": 0.99999900477707,
+    "rq:class_2": 1.0
+  },
+  "source_revision": "f6fb554066d508f933fe220bf27c39ad2de04d8c"
+}
