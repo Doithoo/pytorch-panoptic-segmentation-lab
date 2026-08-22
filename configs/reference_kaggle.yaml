@@ -1,0 +1,42 @@
+data:
+  data_dir: data/raw
+  manifest_dir: data/manifests
+  image_size: [256, 256]
+  batch_size: 4
+  num_workers: 2
+  horizontal_flip: 0.5
+  center_sigma: 8.0
+  max_train_samples: null
+  max_valid_samples: null
+  max_test_samples: null
+model:
+  name: panoptic_unet_small
+  in_channels: 3
+  expected_num_classes: 3
+  base_channels: 32
+loss:
+  semantic_weight: 1.0
+  center_weight: 1.0
+  offset_weight: 0.01
+  ignore_index: 255
+train:
+  epochs: 20
+  lr: 0.001
+  weight_decay: 0.0001
+  optimizer: adamw
+  scheduler: cosine
+  scheduler_step_size: 10
+  scheduler_gamma: 0.1
+  amp: true
+  grad_clip: 1.0
+  seed: 42
+  best_metric: pq
+postprocess:
+  center_threshold: 0.2
+  nms_kernel: 7
+  top_k_centers: 200
+  instance_area: 16
+  stuff_area: 64
+device: cuda
+output_dir: /kaggle/working/artifacts
+run_name: reference-panoptic-unet

@@ -5,8 +5,10 @@ data:
   batch_size: 2
   num_workers: 0
   horizontal_flip: 0.5
+  center_sigma: 4.0
   max_train_samples: 8
   max_valid_samples: 4
+  max_test_samples: 4
 model:
   name: panoptic_unet_small
   in_channels: 3
@@ -14,7 +16,7 @@ model:
   base_channels: 16
 loss:
   semantic_weight: 1.0
-  center_weight: 200.0
+  center_weight: 1.0
   offset_weight: 0.01
   ignore_index: 255
 train:
@@ -22,9 +24,19 @@ train:
   lr: 0.001
   weight_decay: 0.0001
   optimizer: adamw
+  scheduler: cosine
+  scheduler_step_size: 10
+  scheduler_gamma: 0.1
   amp: false
+  grad_clip: 1.0
   seed: 42
   best_metric: pq
+postprocess:
+  center_threshold: 0.2
+  nms_kernel: 7
+  top_k_centers: 100
+  instance_area: 8
+  stuff_area: 16
 device: auto
 output_dir: artifacts
 run_name: learning-minimal

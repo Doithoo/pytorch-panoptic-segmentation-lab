@@ -25,10 +25,16 @@ class LabelSchema:
     def __post_init__(self) -> None:
         if not self.classes or [item.id for item in self.classes] != list(range(len(self.classes))):
             raise ValueError("class ids must be contiguous from zero")
+        if any(not item.name.strip() for item in self.classes):
+            raise ValueError("class names must be non-empty")
         if len({item.name for item in self.classes}) != len(self.classes):
             raise ValueError("class names must be unique")
-        if any(item.id == self.ignore_index for item in self.classes):
-            raise ValueError("ignore_index must not be a class id")
+        if any(
+            len(item.color) != 3 or any(channel < 0 or channel > 255 for channel in item.color) for item in self.classes
+        ):
+            raise ValueError("class colors must contain three values between zero and 255")
+        if self.ignore_index < 0 or any(item.id == self.ignore_index for item in self.classes):
+            raise ValueError("ignore_index must be non-negative and not a class id")
 
     @property
     def num_classes(self) -> int:
@@ -55,9 +61,13 @@ class LabelSchema:
     def from_dict(cls, raw: dict[str, Any]) -> LabelSchema:
         classes = []
         for item in raw.get("classes", []):
+            if not isinstance(item, dict):
+                raise ValueError("each class definition must be a mapping")
             raw_color = item["color"]
             if not isinstance(raw_color, (list, tuple)) or len(raw_color) != 3:
                 raise ValueError("class color must contain exactly three channels")
+            if not isinstance(item.get("isthing"), bool):
+                raise ValueError("class isthing must be a boolean")
             color = (int(raw_color[0]), int(raw_color[1]), int(raw_color[2]))
             classes.append(
                 ClassDefinition(
@@ -78,3 +88,15 @@ class LabelSchema:
 
 
 PanopticTarget = dict[str, Any]
+
+
+def default_label_schema() -> LabelSchema:
+    """Return the package's synthetic learning schema without repository files."""
+    return LabelSchema(
+        classes=(
+            ClassDefinition(0, "background", False, (32, 32, 32)),
+            ClassDefinition(1, "person", True, (230, 80, 80)),
+            ClassDefinition(2, "road", False, (80, 120, 180)),
+        ),
+        ignore_index=255,
+    )

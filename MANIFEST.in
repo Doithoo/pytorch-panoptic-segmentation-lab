@@ -1,6 +1,6 @@
 include CONTRIBUTING.md CONTRIBUTING.zh-CN.md LICENSE Makefile README.md README.zh-CN.md SECURITY.md uv.lock
-recursive-include configs *.yaml
-recursive-include docs *.md
-recursive-include examples *.py
-recursive-include scripts *.py
+recursive-include configs *.yaml *.md
+recursive-include docs *.md *.py *.json
+recursive-include examples *.py *.md
+recursive-include scripts *.py *.md
 recursive-include tests *.py

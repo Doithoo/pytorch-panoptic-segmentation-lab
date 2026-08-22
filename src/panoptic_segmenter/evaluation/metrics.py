@@ -1,21 +1,111 @@
-"""Panoptic Quality metrics implemented without external evaluation packages."""
+"""Class-wise Panoptic Quality for the project's non-crowd mask contract."""
 
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
+from dataclasses import dataclass
 
 import torch
 
 
+@dataclass
+class _ClassStat:
+    iou: float = 0.0
+    tp: int = 0
+    fp: int = 0
+    fn: int = 0
+
+    @property
+    def denominator(self) -> float:
+        return self.tp + 0.5 * self.fp + 0.5 * self.fn
+
+
+class PanopticQualityAccumulator:
+    """Accumulate segment matches by class before macro averaging."""
+
+    def __init__(self, classes: tuple[tuple[int, bool], ...], ignore_index: int = 255) -> None:
+        self.classes = classes
+        self.ignore_index = ignore_index
+        self.stats = {class_id: _ClassStat() for class_id, _ in classes}
+
+    def update(
+        self,
+        pred_semantic: torch.Tensor,
+        pred_instance: torch.Tensor,
+        target_semantic: torch.Tensor,
+        target_instance: torch.Tensor,
+    ) -> None:
+        if pred_semantic.shape != target_semantic.shape or pred_instance.shape != target_instance.shape:
+            raise ValueError("prediction and target shapes must match")
+        if pred_semantic.ndim != 2:
+            raise ValueError("panoptic masks must be two-dimensional")
+        void = target_semantic == self.ignore_index
+        for class_id, isthing in self.classes:
+            pred = _segments(pred_semantic, pred_instance, class_id, isthing)
+            target = _segments(target_semantic, target_instance, class_id, isthing)
+            candidates: list[tuple[float, int, int]] = []
+            for pred_index, pred_mask in enumerate(pred):
+                pred_valid = pred_mask & ~void
+                for target_index, target_mask in enumerate(target):
+                    intersection = int((pred_valid & target_mask).sum())
+                    union = int(pred_valid.sum()) + int(target_mask.sum()) - intersection
+                    if union and intersection / union > 0.5:
+                        candidates.append((intersection / union, pred_index, target_index))
+            matched_pred: set[int] = set()
+            matched_target: set[int] = set()
+            stat = self.stats[class_id]
+            for iou, pred_index, target_index in sorted(candidates, reverse=True):
+                if pred_index in matched_pred or target_index in matched_target:
+                    continue
+                matched_pred.add(pred_index)
+                matched_target.add(target_index)
+                stat.iou += iou
+            stat.tp += len(matched_pred)
+            stat.fn += len(target) - len(matched_target)
+            for pred_index, pred_mask in enumerate(pred):
+                if pred_index in matched_pred:
+                    continue
+                area = int(pred_mask.sum())
+                void_overlap = int((pred_mask & void).sum())
+                if area and void_overlap / area <= 0.5:
+                    stat.fp += 1
+
+    def compute(self) -> dict[str, float]:
+        class_results: dict[int, dict[str, float]] = {}
+        for class_id, _ in self.classes:
+            stat = self.stats[class_id]
+            class_results[class_id] = {
+                "pq": stat.iou / stat.denominator if stat.denominator else math.nan,
+                "sq": stat.iou / stat.tp if stat.tp else math.nan,
+                "rq": stat.tp / stat.denominator if stat.denominator else math.nan,
+            }
+        summary = {
+            "pq": _mean(class_results[class_id]["pq"] for class_id, _ in self.classes),
+            "sq": _mean(class_results[class_id]["sq"] for class_id, _ in self.classes),
+            "rq": _mean(class_results[class_id]["rq"] for class_id, _ in self.classes),
+            "pq_thing": _mean(class_results[class_id]["pq"] for class_id, thing in self.classes if thing),
+            "pq_stuff": _mean(class_results[class_id]["pq"] for class_id, thing in self.classes if not thing),
+            "tp": float(sum(stat.tp for stat in self.stats.values())),
+            "fp": float(sum(stat.fp for stat in self.stats.values())),
+            "fn": float(sum(stat.fn for stat in self.stats.values())),
+        }
+        for class_id, _ in self.classes:
+            for metric, value in class_results[class_id].items():
+                summary[f"{metric}:class_{class_id}"] = value
+        return summary
+
+
+def _mean(values: Iterable[float]) -> float:
+    finite = [float(value) for value in values if math.isfinite(float(value))]
+    return sum(finite) / len(finite) if finite else 0.0
+
+
 def _segments(semantic: torch.Tensor, instance: torch.Tensor, class_id: int, thing: bool) -> list[torch.Tensor]:
     valid = semantic == class_id
-    ids = torch.unique(instance[valid]) if thing else torch.tensor([0], device=semantic.device)
-    return [
-        valid & (instance == int(item))
-        for item in ids
-        if int(item) > 0 or not thing
-        if bool((valid & (instance == int(item))).any())
-    ]
+    if not thing:
+        return [valid] if bool(valid.any()) else []
+    return [valid & (instance == value) for value in torch.unique(instance[valid]).tolist() if int(value) > 0]
 
 
 def panoptic_quality(
@@ -27,46 +117,6 @@ def panoptic_quality(
     classes: tuple[tuple[int, bool], ...],
     ignore_index: int = 255,
 ) -> dict[str, float]:
-    if pred_semantic.shape != target_semantic.shape or pred_instance.shape != target_instance.shape:
-        raise ValueError("prediction and target shapes must match")
-    totals = {"tp": 0, "fp": 0, "fn": 0, "iou": 0.0}
-    class_scores: dict[str, float] = {}
-    for class_id, isthing in classes:
-        pred = _segments(pred_semantic, pred_instance, class_id, isthing)
-        target = _segments(target_semantic, target_instance, class_id, isthing)
-        candidates: list[tuple[float, int, int]] = []
-        for pred_index, pred_mask in enumerate(pred):
-            for target_index, target_mask in enumerate(target):
-                intersection = (pred_mask & target_mask & (target_semantic != ignore_index)).sum().item()
-                union = (pred_mask | target_mask).sum().item() - (
-                    pred_mask & target_mask & (target_semantic == ignore_index)
-                ).sum().item()
-                if union:
-                    iou = intersection / union
-                    if iou > 0.5:
-                        candidates.append((iou, pred_index, target_index))
-        matched_pred, matched_target = set(), set()
-        score = 0.0
-        for iou, pred_index, target_index in sorted(candidates, reverse=True):
-            if pred_index in matched_pred or target_index in matched_target:
-                continue
-            matched_pred.add(pred_index)
-            matched_target.add(target_index)
-            score += iou
-        tp, fp, fn = len(matched_pred), len(pred) - len(matched_pred), len(target) - len(matched_target)
-        denom = tp + 0.5 * fp + 0.5 * fn
-        class_scores[str(class_id)] = score / denom if denom else math.nan
-        totals["tp"] += tp
-        totals["fp"] += fp
-        totals["fn"] += fn
-        totals["iou"] += score
-    denom = totals["tp"] + 0.5 * totals["fp"] + 0.5 * totals["fn"]
-    return {
-        "pq": totals["iou"] / denom if denom else 0.0,
-        "sq": totals["iou"] / totals["tp"] if totals["tp"] else 0.0,
-        "rq": totals["tp"] / denom if denom else 0.0,
-        "tp": float(totals["tp"]),
-        "fp": float(totals["fp"]),
-        "fn": float(totals["fn"]),
-        **{f"pq:class_{key}": value for key, value in class_scores.items()},
-    }
+    accumulator = PanopticQualityAccumulator(classes, ignore_index)
+    accumulator.update(pred_semantic, pred_instance, target_semantic, target_instance)
+    return accumulator.compute()

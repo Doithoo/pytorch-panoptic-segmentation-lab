@@ -13,7 +13,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Yashowhoo" }]
 keywords = ["pytorch", "panoptic-segmentation", "computer-vision", "education"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Education",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -42,7 +42,7 @@ plot = ["matplotlib>=3.6,<4"]
 [project.urls]
 Homepage = "https://github.com/Doithoo/pytorch-panoptic-segmentation-lab"
 Repository = "https://github.com/Doithoo/pytorch-panoptic-segmentation-lab"
-Documentation = "https://github.com/Doithoo/pytorch-panoptic-segmentation-lab#readme"
+Documentation = "https://github.com/Doithoo/pytorch-panoptic-segmentation-lab/tree/main/docs"
 
 [project.scripts]
 panoptic-segment = "panoptic_segmenter.cli:main"

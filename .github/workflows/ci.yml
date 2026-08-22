@@ -37,4 +37,5 @@ jobs:
       - run: uv run python -m build
       - run: uv venv /tmp/panoptic-wheel
       - run: uv pip install --python /tmp/panoptic-wheel/bin/python dist/*.whl
-      - run: /tmp/panoptic-wheel/bin/panoptic-segment show-config
+      - run: /tmp/panoptic-wheel/bin/python -c "import panoptic_segmenter; print(panoptic_segmenter.__version__)"
+      - run: cd /tmp && /tmp/panoptic-wheel/bin/panoptic-segment show-config --set run_name=wheel-smoke

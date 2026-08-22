@@ -55,7 +55,13 @@ class PanopticDataset(Dataset[tuple[torch.Tensor, PanopticTarget, str]]):
         with Image.open(self._resolve(row["instance_path"])) as source:
             instance = Image.fromarray(np.asarray(source, dtype=np.int32))
         image_tensor, semantic_tensor, instance_tensor = self.transform(image, semantic, instance)
-        target = build_targets(semantic_tensor, instance_tensor, self.schema.thing_ids)
+        target = build_targets(
+            semantic_tensor,
+            instance_tensor,
+            self.schema.thing_ids,
+            center_sigma=self.transform.center_sigma,
+            ignore_index=self.schema.ignore_index,
+        )
         return image_tensor, target, row["sample_id"]
 
 
