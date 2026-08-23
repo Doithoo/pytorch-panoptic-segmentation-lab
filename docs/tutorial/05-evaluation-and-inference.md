@@ -10,6 +10,6 @@ PQ matching uses IoU greater than 0.5. Statistics accumulate per class over the 
 
 The project contract does not encode crowd regions. Dataset-specific official comparisons must add the dataset's crowd/void conversion and validate against its official evaluator. Do not compare this teaching result directly with an official leaderboard number without that adapter.
 
-Prediction pads to the next multiple of 16 and crops outputs back to the exact source dimensions. It writes raw semantic IDs, 16-bit instance IDs, stable schema colors, and a per-instance overlay. Thresholds come from the checkpoint config.
+Prediction resizes the source to the checkpoint's training `data.image_size`, decodes there, and restores discrete masks to the exact source dimensions with nearest-neighbor interpolation. It writes raw semantic IDs, 16-bit instance IDs, stable schema colors, and a per-instance overlay. Thresholds come from the checkpoint config.
 
 Aggregate metrics answer whether a run improved; overlays answer how it failed. Inspect semantic confusion, missing centers, duplicate centers, merged/split objects, tiny-region filtering, and offset direction separately.

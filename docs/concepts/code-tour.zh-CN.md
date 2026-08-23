@@ -25,6 +25,6 @@
 - `evaluation/metrics.py`：split 级按类别 PQ。
 - `evaluation/evaluate.py`：checkpoint 评估。
 - `evaluation/visualization.py`：schema 配色与实例 overlay。
-- `inference/predictor.py`：padding、重载和原尺寸导出。
+- `inference/predictor.py`：保存尺度预处理、重载和原尺寸导出。
 
 `_` 开头 helper 只供内部共享，不是稳定公共 API。扩展时应增加明确契约，不要让应用代码依赖深层私有函数。

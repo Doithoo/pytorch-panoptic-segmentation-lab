@@ -55,4 +55,4 @@ The submitted files are [`kaggle/run_kaggle.py`](kaggle/run_kaggle.py) and [`ker
 
 ## Limitations
 
-The run uses no external dataset, no crowd annotations, and no official server evaluator. A real Cityscapes/COCO result still requires a converter, official split, crowd/void adapter, license review, and dataset-specific evaluator comparison.
+The run uses no external dataset, no crowd annotations, and no official server evaluator. A real Cityscapes result still requires attaching the licensed source data and completing the prepared official runner; COCO requires its own converter and evaluator policy.

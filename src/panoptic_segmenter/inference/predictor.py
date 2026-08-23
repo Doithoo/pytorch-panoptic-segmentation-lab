@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from pathlib import Path
 
 import numpy as np
@@ -59,12 +58,8 @@ class Predictor:
         output.mkdir(parents=True, exist_ok=True)
         with Image.open(image_path) as source:
             image = source.convert("RGB")
-        padded_width = math.ceil(image.width / 16) * 16
-        padded_height = math.ceil(image.height / 16) * 16
-        padded = Image.new("RGB", (padded_width, padded_height))
-        padded.paste(image)
-        transform = PanopticTransform((padded_height, padded_width), 0.0, False)
-        tensor, _, _ = transform(padded, Image.new("L", padded.size), Image.new("I", padded.size))
+        transform = PanopticTransform(self.config.data.image_size, 0.0, False)
+        tensor, _, _ = transform(image, Image.new("L", image.size), Image.new("I", image.size))
         with torch.inference_mode():
             semantic, instance = decode_panoptic(
                 self.model(tensor[None].to(self.device)),
@@ -72,8 +67,14 @@ class Predictor:
                 ignore_index=self.schema.ignore_index,
                 **to_dict(self.config)["postprocess"],
             )
-        semantic_array = semantic[0, : image.height, : image.width].cpu().numpy()
-        instance_array = instance[0, : image.height, : image.width].cpu().numpy()
+        semantic_array = semantic[0].cpu().numpy().astype(np.uint8)
+        instance_array = instance[0].cpu().numpy().astype(np.uint16)
+        semantic_array = np.asarray(
+            Image.fromarray(semantic_array).resize(image.size, Image.Resampling.NEAREST), dtype=np.uint8
+        )
+        instance_array = np.asarray(
+            Image.fromarray(instance_array).resize(image.size, Image.Resampling.NEAREST), dtype=np.uint16
+        )
         stem = Path(image_path).stem
         semantic_path = output / f"{stem}.semantic.png"
         instance_path = output / f"{stem}.instance.png"

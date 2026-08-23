@@ -10,6 +10,6 @@ PQ 使用 IoU 大于 0.5 的匹配，先在整个 split 内按类别累计，再
 
 本项目契约不含 crowd。与官方数据集比较时必须补充该数据集的 crowd/void 转换，并与官方 evaluator 对拍；没有适配时不要直接和 leaderboard 数值比较。
 
-预测会 pad 到 16 的倍数，再裁剪回原图尺寸，输出 semantic ID、16-bit instance ID、稳定 schema 配色和实例 overlay。阈值来自 checkpoint 配置。
+预测先把输入缩放到 checkpoint 保存的训练 `data.image_size`，在该尺度解码，再用 nearest-neighbor 把离散 mask 恢复到原图尺寸。输出 semantic ID、16-bit instance ID、稳定 schema 配色和实例 overlay，阈值来自 checkpoint 配置。
 
 聚合指标回答实验是否改善，可视化回答如何失败。应分别检查语义混淆、中心漏检/重复、实例合并/拆分、小区域过滤和 offset 方向。

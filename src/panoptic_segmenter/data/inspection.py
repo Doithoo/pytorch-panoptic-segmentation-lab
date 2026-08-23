@@ -62,7 +62,7 @@ def inspect_prepared_dataset(manifest_dir: str | Path, *, limit_per_split: int |
         with manifest.open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
         counts[split] = len(rows)
-        if not rows:
+        if not rows and not (split == "test" and metadata.get("test_available", True) is False):
             issues.append(DataIssue(split, "split is empty"))
         if not isinstance(declared_hashes, dict) or declared_hashes.get(split) != _sha256(manifest):
             issues.append(DataIssue(split, "manifest SHA-256 does not match dataset.yaml"))

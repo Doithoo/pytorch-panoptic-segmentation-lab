@@ -25,6 +25,6 @@ Result ownership:
 - `evaluation/metrics.py`: split-level per-class PQ statistics.
 - `evaluation/evaluate.py`: checkpoint-backed split evaluation.
 - `evaluation/visualization.py`: schema colors and instance overlays.
-- `inference/predictor.py`: padding, model reload, exact-size exports.
+- `inference/predictor.py`: saved-size preprocessing, model reload, exact-size exports.
 
 Private helpers prefixed `_` are shared internally where necessary but are not a stable public API. Extensions should add explicit contracts rather than importing deeper private functions from application code.

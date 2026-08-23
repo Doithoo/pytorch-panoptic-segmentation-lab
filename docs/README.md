@@ -24,6 +24,7 @@ Use the documentation by intent instead of reading it linearly.
 ## Perform a task
 
 - [Complete a Kaggle GPU run](guides/kaggle.md)
+- [Convert Cityscapes](guides/cityscapes.md)
 - [Use your own data](guides/using-your-data.md)
 - [Run controlled experiments](guides/experiments.md)
 - [Troubleshoot failures](guides/troubleshooting.md)
@@ -32,8 +33,10 @@ Use the documentation by intent instead of reading it linearly.
 
 - [Configuration fields](reference/config-reference.md)
 - [Data format](reference/data-format.md)
+- [Cityscapes mapping](reference/cityscapes.md)
 - [Metrics](reference/metrics.md)
 - [Checkpoint schema](reference/checkpoint-schema.md)
-- [Recorded-run status](recorded-run/README.md)
+- [Recorded synthetic run](recorded-run/README.md)
+- [Pending licensed Cityscapes run](recorded-run/cityscapes/README.md)
 
 The tutorials explain concepts, guides give procedures, references define exact behavior, and the recorded run contains evidence from one fixed execution. Keep those responsibilities separate when contributing.

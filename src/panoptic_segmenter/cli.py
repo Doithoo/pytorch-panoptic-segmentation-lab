@@ -9,7 +9,13 @@ import yaml
 
 from . import __version__
 from .config import load_config, to_dict
-from .data import LabelSchema, default_label_schema, inspect_prepared_dataset
+from .data import (
+    LabelSchema,
+    cityscapes_schema,
+    convert_cityscapes_dataset,
+    default_label_schema,
+    inspect_prepared_dataset,
+)
 from .data.manifest import prepare_paired_dataset
 from .evaluation.evaluate import evaluate_checkpoint
 from .inference import Predictor
@@ -39,6 +45,11 @@ def main(argv: list[str] | None = None) -> int:
     prepare.add_argument("--schema", default=None)
     prepare.add_argument("--ratios", nargs=3, type=float, default=(0.8, 0.1, 0.1))
     prepare.add_argument("--seed", type=int, default=42)
+    city = sub.add_parser("convert-cityscapes", help="convert official Cityscapes train/val labels")
+    city.add_argument("--data-root", required=True)
+    city.add_argument("--output-root", default="data/cityscapes")
+    city.add_argument("--symlink-images", action="store_true")
+    city.add_argument("--non-strict", action="store_true")
     inspect = sub.add_parser("inspect-data", help="validate prepared manifests and panoptic labels")
     inspect.add_argument("--manifest-dir", default="data/manifests")
     inspect.add_argument("--limit-per-split", type=int, default=None)
@@ -72,6 +83,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         for split, path in paths.items():
             print(f"{split}: {path}")
+        return 0
+    if args.command == "convert-cityscapes":
+        output = convert_cityscapes_dataset(
+            args.data_root,
+            args.output_root,
+            copy_images=not args.symlink_images,
+            strict=not args.non_strict,
+        )
+        print(f"cityscapes data: {output}")
+        print(yaml.safe_dump(cityscapes_schema().to_dict(), sort_keys=False), end="")
         return 0
     if args.command == "inspect-data":
         report = inspect_prepared_dataset(args.manifest_dir, limit_per_split=args.limit_per_split)

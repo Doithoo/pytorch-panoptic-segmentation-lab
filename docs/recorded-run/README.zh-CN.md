@@ -55,4 +55,4 @@ kaggle kernels output yashowhoo/pytorch-panoptic-segmentation-lab-gpu \
 
 ## 限制
 
-本次运行没有外部数据、crowd 标注或官方服务器 evaluator。真实 Cityscapes/COCO 结果仍需 converter、官方 split、crowd/void adapter、许可审查和数据集专用 evaluator 对拍。
+本次运行没有外部数据、crowd 标注或官方服务器 evaluator。真实 Cityscapes 结果仍需挂载许可源数据并完成已准备好的官方 runner；COCO 需要自己的 converter 和 evaluator 政策。

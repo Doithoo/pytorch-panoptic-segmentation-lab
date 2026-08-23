@@ -1,6 +1,6 @@
 # PyTorch Panoptic Segmentation Lab
 
-[English](README.md) | [文档中心](docs/README.zh-CN.md) | [Kaggle 指南](docs/guides/kaggle.zh-CN.md)
+[English](README.md) | [文档中心](docs/README.zh-CN.md) | [Kaggle 指南](docs/guides/kaggle.zh-CN.md) | [Cityscapes 指南](docs/guides/cityscapes.zh-CN.md)
 
 一个强调可读性与实验可复现性的 PyTorch 全景分割项目。基线模型同时预测语义类别、thing 中心热图和像素到中心的 offset，再把结果组合为 thing 实例与 stuff 区域。
 
@@ -18,6 +18,7 @@
 - 完整配置、训练历史、运行环境、Git revision 和数据身份记录。
 - 原始 semantic/instance mask、语义配色图和全景 overlay。
 - CPU 自动测试和带心跳、自动评估的 Kaggle T4 runner。
+- 保留官方 split、校验 raw/train ID 并导出 panoptic JSON/PNG 的 Cityscapes 转换器。
 
 ## 快速开始
 
@@ -96,6 +97,18 @@ uv run panoptic-segment show-config --config configs/learning_minimal.yaml \
 
 完整字段见[配置参考](docs/reference/config-reference.zh-CN.md)。
 
+## Cityscapes
+
+Cityscapes 支持保留官方 train/val split，把 `labelIds` 和 `instanceIds` 转换为项目契约：
+
+```bash
+uv run panoptic-segment convert-cityscapes \
+  --data-root /path/to/cityscapes --output-root data/cityscapes
+uv run panoptic-segment inspect-data --manifest-dir data/cityscapes
+```
+
+训练前请阅读 [Cityscapes 指南](docs/guides/cityscapes.zh-CN.md)。公开 Cityscapes test 标注不可用，项目会报告 validation，除非使用官方服务器。转换器还会生成可供 evaluator 使用的官方格式 panoptic JSON/PNG。
+
 ## Kaggle GPU
 
 仓库提供一个不依赖外部 Dataset 的合成数据参考 kernel，用来证明源码获取、CUDA kernel、训练、checkpoint 重载、test 评估和产物导出能在一次非交互 Kaggle 任务中完成。
@@ -124,7 +137,7 @@ kaggle kernels push -p docs/recorded-run/kaggle
 
 ## 范围与限制
 
-当前基线刻意保持小型并从头训练。它用于展示完整工程契约，不宣称与原始 Panoptic-DeepLab 架构等价，也不宣称达到先进精度。项目当前没有预训练 backbone、官方 Cityscapes/COCO 转换器、crowd 字段、分布式训练或已完成的真实数据 Kaggle 记录。这些是明确的扩展方向，不是隐藏能力。
+当前基线刻意保持小型并从头训练。它用于展示完整工程契约，不宣称与原始 Panoptic-DeepLab 架构等价，也不宣称达到先进精度。项目当前没有预训练 backbone、分布式训练或已完成的真实数据 Kaggle 记录。Cityscapes 转换和官方格式导出已经提供，但官方 leaderboard 结果仍需要 benchmark evaluator 和具体评测政策。这些是明确的扩展方向，不是隐藏能力。
 
 运行全部质量门禁：
 

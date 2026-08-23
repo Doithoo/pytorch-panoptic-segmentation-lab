@@ -1,6 +1,6 @@
 # PyTorch Panoptic Segmentation Lab
 
-[简体中文](README.zh-CN.md) | [Documentation](docs/README.md) | [Kaggle guide](docs/guides/kaggle.md)
+[简体中文](README.zh-CN.md) | [Documentation](docs/README.md) | [Kaggle guide](docs/guides/kaggle.md) | [Cityscapes guide](docs/guides/cityscapes.md)
 
 A readable, reproducible PyTorch project for learning panoptic segmentation end to end. The baseline predicts semantic classes, thing centers, and per-pixel center offsets, then combines them into thing instances and stuff regions.
 
@@ -18,6 +18,7 @@ A readable, reproducible PyTorch project for learning panoptic segmentation end 
 - Resolved configuration, metrics history, environment metadata, and hashes.
 - Raw semantic/instance outputs, semantic colors, and panoptic overlays.
 - CPU tests and a Kaggle T4 reference runner with heartbeats and final evaluation.
+- An official-split Cityscapes converter with raw/train ID validation and panoptic JSON/PNG export.
 
 ## Quick start
 
@@ -96,6 +97,18 @@ Image dimensions must be divisible by 16. The schema class count and ignore inde
 
 See the [configuration reference](docs/reference/config-reference.md).
 
+## Cityscapes
+
+Cityscapes support preserves its official train/val split and converts `labelIds` plus `instanceIds` into the project contract:
+
+```bash
+uv run panoptic-segment convert-cityscapes \
+  --data-root /path/to/cityscapes --output-root data/cityscapes
+uv run panoptic-segment inspect-data --manifest-dir data/cityscapes
+```
+
+Read the [Cityscapes guide](docs/guides/cityscapes.md) before training. Public Cityscapes test annotations are unavailable, so the project reports validation unless an official server is used. The converter also writes official-format panoptic JSON/PNG artifacts for optional evaluator integration.
+
 ## Kaggle GPU
 
 The repository includes a no-dataset synthetic reference kernel. It is intended to prove that source retrieval, CUDA kernels, training, checkpoint reload, test evaluation, and artifact export all work in one non-interactive Kaggle job.
@@ -124,7 +137,7 @@ Start with the [guided learning path](docs/tutorial/learning-path.md) or use the
 
 ## Scope and limitations
 
-The baseline is intentionally small and trained from scratch. It demonstrates the complete contract but does not claim Panoptic-DeepLab architectural parity or state-of-the-art accuracy. The project currently has no pretrained backbone, official Cityscapes/COCO converter, crowd annotation field, distributed training, or completed real-dataset Kaggle record. These are explicit extension points, not hidden claims.
+The baseline is intentionally small and trained from scratch. It demonstrates the complete contract but does not claim Panoptic-DeepLab architectural parity or state-of-the-art accuracy. The project currently has no pretrained backbone, distributed training, or completed real-dataset Kaggle record. Cityscapes conversion and official-format export are included; an official leaderboard result still requires the benchmark evaluator and policy. These are explicit extension points, not hidden claims.
 
 Run all local quality gates with:
 
