@@ -75,7 +75,13 @@ def main() -> int:
     config.output_dir = Path(args.output)
     config.device = "cuda"
     schema = LabelSchema.read_yaml(args.schema) if args.schema else default_label_schema()
-    prepare_paired_dataset(input_root, config.data.manifest_dir, schema=schema)
+    group_file = input_root / "groups.csv"
+    prepare_paired_dataset(
+        input_root,
+        config.data.manifest_dir,
+        schema=schema,
+        group_file=group_file if group_file.is_file() else None,
+    )
     report = inspect_prepared_dataset(config.data.manifest_dir)
     report.raise_for_issues()
     print(json.dumps({"phase": "preflight", "gpu": gpu, "input": str(input_root), "splits": report.split_counts}))
