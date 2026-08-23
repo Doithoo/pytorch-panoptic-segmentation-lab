@@ -1,0 +1,19 @@
+python: 3.12.13
+torch: 2.10.0+cu128
+torchvision: 0.25.0+cu128
+platform: Linux-6.12.90+-x86_64-with-glibc2.35
+device: cuda
+cuda_device_count: 2
+cuda_device_name: Tesla T4
+seed: 42
+git_revision: e88a11d488ad0f02f476f7143c76484b73ed579b
+dataset_identity: 5abdb948684b52b3948991ff1caa349a6d62eebf63ce4a7ecc62ad0b72b98bbb
+split_counts:
+  train: 85
+  valid: 46
+  test: 39
+started_at_unix: 1787507583.2667031
+resumed_from: null
+completed_at_unix: 1787507653.5985572
+completed_epochs: 10
+best_metric: 0.29039715519281784

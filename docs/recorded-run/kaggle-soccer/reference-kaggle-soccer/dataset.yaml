@@ -1,0 +1,26 @@
+format_version: 1
+data_dir: ../soccer-contract
+seed: 42
+ratios:
+- 0.8
+- 0.1
+- 0.1
+split_counts:
+  train: 85
+  valid: 46
+  test: 39
+manifest_sha256:
+  train: 463193283ff1263366a4995d6889430d0f1468c81927346395d761b0f8d3d527
+  valid: 4470de2b1b4cc1a70b12d9a6a32b0190f71a45a6a7acadc0a977612abaf4349e
+  test: 4c5cbe51042bc1590d8a89bab3cff6a672d747e0ada2ca690a19ed667fe4e81a
+schema_sha256: b6a76398d4b7028df6cc65a0062dd883da511642b2a59f41a24560b70a7f06cd
+grouped_split: true
+group_file: ../soccer-contract/groups.csv
+split_groups:
+  train:
+  - Batch 3
+  valid:
+  - Batch 1
+  test:
+  - Batch 2
+identity: 5abdb948684b52b3948991ff1caa349a6d62eebf63ce4a7ecc62ad0b72b98bbb

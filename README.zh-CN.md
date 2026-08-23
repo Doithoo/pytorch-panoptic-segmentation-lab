@@ -9,7 +9,7 @@
 
 ![合成数据原图、语义标签和全景 overlay](docs/assets/synthetic-panoptic-preview.png)
 
-> 项目状态：本地流程和安装包流程已有测试覆盖，确定性合成数据 Kaggle 参考任务也已成功完成。指标和证据见[参考运行](docs/recorded-run/README.zh-CN.md)。该结果是流程证据而不是真实数据 benchmark；内置 PQ 评估器适用于本项目“不含 crowd”的 mask 契约，不能替代具体数据集的 crowd 规则或官方评测服务器。
+> 项目状态：本地流程和安装包流程已有测试覆盖，确定性合成数据 Kaggle 参考任务已成功完成，并已记录公开 Kaggle Soccer 教学运行。详见[合成数据运行](docs/recorded-run/README.zh-CN.md)和 [Kaggle Soccer 运行](docs/recorded-run/kaggle-soccer/README.zh-CN.md)。这些是流程和教学证据，不是官方 benchmark；内置 PQ 评估器适用于本项目“不含 crowd”的 mask 契约，不能替代具体数据集的 crowd 规则或官方评测服务器。
 
 ## 已实现能力
 
@@ -168,7 +168,7 @@ tests/                       离线单元、集成和文档测试
 
 ## 范围与限制
 
-当前基线刻意保持小型并从头训练。它用于展示完整工程契约，不宣称与原始 Panoptic-DeepLab 架构等价，也不宣称达到先进精度。项目当前没有预训练 backbone、分布式训练或已完成的真实数据 Kaggle 记录。Cityscapes 转换和官方格式导出已经提供，但官方 leaderboard 结果仍需要 benchmark evaluator 和具体评测政策。这些是明确的扩展方向，不是隐藏能力。
+当前基线刻意保持小型并从头训练。它用于展示完整工程契约，不宣称与原始 Panoptic-DeepLab 架构等价，也不宣称达到先进精度。项目当前没有预训练 backbone 或分布式训练。公开 Kaggle Soccer 教学运行已经记录，但官方 Cityscapes/COCO leaderboard 结果仍需要 benchmark evaluator 和具体评测政策。这些是明确的扩展方向，不是隐藏能力。
 
 运行全部质量门禁：
 

@@ -9,7 +9,7 @@ A readable, reproducible PyTorch project for learning panoptic segmentation end 
 
 ![Synthetic source, semantic labels, and panoptic overlays](docs/assets/synthetic-panoptic-preview.png)
 
-> Project status: the local and packaged workflows are tested, and the deterministic synthetic Kaggle reference job completed successfully. See [recorded run](docs/recorded-run/README.md) for metrics and evidence. The result is workflow evidence rather than a real-data benchmark; the built-in PQ evaluator covers this project's non-crowd mask contract and is not a replacement for dataset-specific crowd handling or an official benchmark server.
+> Project status: the local and packaged workflows are tested, the deterministic synthetic Kaggle reference job completed successfully, and a public Kaggle Soccer teaching run is recorded. See the [synthetic run](docs/recorded-run/README.md) and [Kaggle Soccer run](docs/recorded-run/kaggle-soccer/README.md). These are workflow and teaching evidence rather than official benchmark results; the built-in PQ evaluator covers this project's non-crowd mask contract and is not a replacement for dataset-specific crowd handling or an official benchmark server.
 
 ## What is included
 
@@ -168,7 +168,7 @@ The [documentation index](docs/README.md) is organized by intent. Start with the
 
 ## Scope and limitations
 
-The baseline is intentionally small and trained from scratch. It demonstrates the complete contract but does not claim Panoptic-DeepLab architectural parity or state-of-the-art accuracy. The project currently has no pretrained backbone, distributed training, or completed real-dataset Kaggle record. Cityscapes conversion and official-format export are included; an official leaderboard result still requires the benchmark evaluator and policy. These are explicit extension points, not hidden claims.
+The baseline is intentionally small and trained from scratch. It demonstrates the complete contract but does not claim Panoptic-DeepLab architectural parity or state-of-the-art accuracy. The project currently has no pretrained backbone or distributed training. A public Kaggle Soccer teaching run is recorded, while an official Cityscapes/COCO leaderboard result still requires the benchmark evaluator and policy. These are explicit extension points, not hidden claims.
 
 Run all local quality gates with:
 
