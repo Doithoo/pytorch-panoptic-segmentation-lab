@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 REPOSITORY = "https://github.com/Doithoo/pytorch-panoptic-segmentation-lab.git"
-REVISION = "main"
+REVISION = "fa3b681"
 WORKING = Path("/kaggle/working")
 PROJECT = WORKING / "pytorch-panoptic-segmentation-lab"
 
