@@ -25,6 +25,19 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest
+      - run: uv run pytest --cov=panoptic_segmenter --cov-report=term-missing
+      - run: uv run python -m pip check
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --locked --extra dev
+      - run: uv run --with pip-audit pip-audit --local --skip-editable --strict --progress-spinner off
 
   package:
     runs-on: ubuntu-latest
@@ -39,4 +52,5 @@ jobs:
       - run: uv venv /tmp/panoptic-wheel
       - run: uv pip install --python /tmp/panoptic-wheel/bin/python dist/*.whl
       - run: /tmp/panoptic-wheel/bin/python -c "import panoptic_segmenter; print(panoptic_segmenter.__version__)"
+      - run: /tmp/panoptic-wheel/bin/python -m pip check
       - run: cd /tmp && /tmp/panoptic-wheel/bin/panoptic-segment show-config --set run_name=wheel-smoke

@@ -12,12 +12,12 @@ from .config import load_config, to_dict
 from .data import (
     LabelSchema,
     cityscapes_schema,
-    convert_cityscapes_dataset,
+    convert_dataset,
     default_label_schema,
     inspect_prepared_dataset,
 )
 from .data.manifest import prepare_paired_dataset
-from .evaluation.evaluate import evaluate_checkpoint
+from .evaluation.evaluate import evaluate_checkpoint, evaluate_checkpoint_detailed, write_evaluation_report
 from .inference import Predictor
 from .training.train import train_from_config
 
@@ -45,6 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     prepare.add_argument("--schema", default=None)
     prepare.add_argument("--ratios", nargs=3, type=float, default=(0.8, 0.1, 0.1))
     prepare.add_argument("--seed", type=int, default=42)
+    prepare.add_argument("--group-file", default=None, help="CSV with sample_id,group_id for leakage-safe splits")
     city = sub.add_parser("convert-cityscapes", help="convert official Cityscapes train/val labels")
     city.add_argument("--data-root", required=True)
     city.add_argument("--output-root", default="data/cityscapes")
@@ -63,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
     evaluate.add_argument("checkpoint")
     evaluate.add_argument("--split", choices=("train", "valid", "test"), default="valid")
     evaluate.add_argument("--device", choices=("auto", "cpu", "cuda", "mps"), default="auto")
+    evaluate.add_argument("--output", default=None, help="optional JSON report path")
+    evaluate.add_argument("--worst-cases", type=int, default=10, help="number of lowest-PQ samples in the report")
     predict = sub.add_parser("predict", help="export raw masks and visualizations for one image")
     predict.add_argument("checkpoint")
     predict.add_argument("image")
@@ -80,12 +83,14 @@ def main(argv: list[str] | None = None) -> int:
             schema=schema,
             ratios=tuple(args.ratios),
             seed=args.seed,
+            group_file=args.group_file,
         )
         for split, path in paths.items():
             print(f"{split}: {path}")
         return 0
     if args.command == "convert-cityscapes":
-        output = convert_cityscapes_dataset(
+        output = convert_dataset(
+            "cityscapes",
             args.data_root,
             args.output_root,
             copy_images=not args.symlink_images,
@@ -110,7 +115,21 @@ def main(argv: list[str] | None = None) -> int:
         report.raise_for_issues()
         return 0
     if args.command == "evaluate":
-        print(yaml.safe_dump(evaluate_checkpoint(args.checkpoint, args.split, args.device), sort_keys=False), end="")
+        if args.output:
+            scores, per_image = evaluate_checkpoint_detailed(args.checkpoint, args.split, args.device)
+            report_path = write_evaluation_report(
+                args.output,
+                args.checkpoint,
+                args.split,
+                args.device,
+                scores,
+                per_image=per_image,
+                worst_case_count=args.worst_cases,
+            )
+            print(f"evaluation report: {report_path}")
+        else:
+            scores = evaluate_checkpoint(args.checkpoint, args.split, args.device)
+        print(yaml.safe_dump(scores, sort_keys=False), end="")
         return 0
     if args.command == "predict":
         paths = Predictor.from_checkpoint(args.checkpoint, args.device).predict_path(args.image, args.output)

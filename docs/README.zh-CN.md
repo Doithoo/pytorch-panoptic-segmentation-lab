@@ -6,6 +6,7 @@
 
 ## 学习
 
+- [教程索引](tutorial/README.zh-CN.md)
 - [完整学习路线](tutorial/learning-path.zh-CN.md)
 - [全景分割 Tensor 与 ID](tutorial/00-basics.zh-CN.md)
 - [环境和 CLI](tutorial/01-environment.zh-CN.md)
@@ -24,19 +25,25 @@
 ## 完成任务
 
 - [完成 Kaggle GPU 运行](guides/kaggle.zh-CN.md)
+- [使用公共 Kaggle Soccer 数据集](guides/kaggle-soccer.zh-CN.md)
 - [转换 Cityscapes](guides/cityscapes.zh-CN.md)
 - [使用自己的数据](guides/using-your-data.zh-CN.md)
+- [添加模型](guides/adding-models.zh-CN.md)
+- [添加数据集转换器](guides/adding-datasets.zh-CN.md)
 - [进行受控实验](guides/experiments.zh-CN.md)
 - [故障排查](guides/troubleshooting.zh-CN.md)
 
 ## 查询契约
 
+- [CLI 命令](reference/cli.zh-CN.md)
 - [配置字段](reference/config-reference.zh-CN.md)
 - [数据格式](reference/data-format.zh-CN.md)
 - [Cityscapes 映射](reference/cityscapes.zh-CN.md)
 - [指标](reference/metrics.zh-CN.md)
 - [Checkpoint schema](reference/checkpoint-schema.zh-CN.md)
+- [兼容性策略](reference/compatibility.zh-CN.md)
 - [合成数据参考运行](recorded-run/README.zh-CN.md)
+- [Kaggle Soccer 运行](recorded-run/kaggle-soccer/README.zh-CN.md)
 - [等待许可数据的 Cityscapes 运行](recorded-run/cityscapes/README.zh-CN.md)
 
 教程负责解释概念，指南负责给出操作步骤，参考页定义精确行为，recorded run 保存一次固定运行的证据。贡献文档时应保持这些职责边界。

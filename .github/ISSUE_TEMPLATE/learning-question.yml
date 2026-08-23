@@ -16,7 +16,7 @@ body:
     id: chapter
     attributes:
       label: Chapter or example / 章节或示例
-      placeholder: "Tutorial 02 / examples/02_paired_transform.py"
+      placeholder: "Tutorial 02 / examples/02_model_contract.py"
     validations:
       required: true
   - type: textarea

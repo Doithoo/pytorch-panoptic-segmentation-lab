@@ -10,6 +10,7 @@ import yaml
 from PIL import Image
 
 from panoptic_segmenter.data import (
+    available_converters,
     cityscapes_panoptic_ids,
     cityscapes_schema,
     cityscapes_segments_info,
@@ -43,6 +44,10 @@ def _cityscapes_fixture(root: Path, split: str, city: str, base: str, offset: in
     instances[labels == 26] = 26002 + offset
     Image.fromarray(labels).save(label_dir / f"{base}_gtFine_labelIds.png")
     Image.fromarray(instances).save(label_dir / f"{base}_gtFine_instanceIds.png")
+
+
+def test_cityscapes_converter_is_registered() -> None:
+    assert "cityscapes" in available_converters()
 
 
 def test_cityscapes_label_mapping_and_instance_reindexing() -> None:

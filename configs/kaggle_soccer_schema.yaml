@@ -1,0 +1,30 @@
+ignore_index: 255
+classes:
+  - id: 0
+    name: Player
+    isthing: true
+    color: [210, 2, 27]
+  - id: 1
+    name: Ball
+    isthing: true
+    color: [80, 227, 194]
+  - id: 2
+    name: Goal Line
+    isthing: false
+    color: [189, 16, 224]
+  - id: 3
+    name: Field
+    isthing: false
+    color: [139, 87, 42]
+  - id: 4
+    name: Background
+    isthing: false
+    color: [0, 0, 0]
+  - id: 5
+    name: Referee
+    isthing: true
+    color: [245, 166, 35]
+  - id: 6
+    name: Football Pitch Line
+    isthing: false
+    color: [74, 144, 226]

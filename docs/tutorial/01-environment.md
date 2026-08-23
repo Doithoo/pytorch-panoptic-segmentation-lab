@@ -10,7 +10,7 @@ uv run panoptic-segment --version
 make check
 ```
 
-`make check` runs lint, format verification, mypy, tests, and package build. GPU is optional for learning-minimal; use `--device cpu`, `mps`, or `cuda` to make selection explicit.
+`make check` runs lint, format verification, mypy, tests, coverage reporting, and package build. GPU is optional for learning-minimal; use `--device cpu`, `mps`, or `cuda` to make selection explicit.
 
 The CLI commands are:
 

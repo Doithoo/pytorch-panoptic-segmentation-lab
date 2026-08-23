@@ -2,7 +2,7 @@
 
 [简体中文](kaggle.zh-CN.md) | [Recorded-run status](../recorded-run/README.md)
 
-The supplied kernel completes a deterministic 256-image synthetic run without an attached Kaggle Dataset. It validates the non-interactive GPU and artifact workflow; it is not a real-data benchmark.
+The supplied kernel completes a deterministic 256-image synthetic run without an attached Kaggle Dataset. For a small public-data teaching workflow, use the [Kaggle Soccer guide](kaggle-soccer.md), which converts `quantigoai/soccer-dataset` before training. The synthetic job validates the non-interactive GPU and artifact workflow; neither workflow is an official benchmark.
 
 ## Prerequisites
 
@@ -48,6 +48,7 @@ Inspect:
 | `metrics.csv` | 20 rows, finite component losses, validation metrics |
 | `best.pt` / `last.pt` | validation-selected versus final resumable state |
 | `evaluation/evaluation.json` | automatic test summary from `best.pt` |
+| `evaluation/evaluation_detailed.json` | checkpoint/data identity, per-image metrics, and lowest-PQ cases |
 | `evaluation/per_class.csv` | PQ/SQ/RQ row for every schema class |
 
 Copy small evidence into `docs/recorded-run/`, update both recorded-run READMEs, and link the Kaggle page. Do not commit large checkpoints.

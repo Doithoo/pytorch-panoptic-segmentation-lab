@@ -8,5 +8,7 @@
 | `reference_kaggle.yaml` | 20 epoch CUDA 合成数据参考任务 |
 | `cityscapes.yaml` | 官方 train/val Cityscapes 流程 |
 | `synthetic_schema.yaml` | 生成数据使用的三分类教学 schema |
+| `kaggle_soccer_schema.yaml` | 公共 Kaggle Soccer 教学数据集的七类 schema |
+| `kaggle_soccer.yaml` | 适合 GPU 的十轮 Soccer 流程 |
 
 配置与默认值合并后才是实际运行值，请用 `show-config` 检查。合成 schema 不是 Cityscapes schema，不能用它发布 Cityscapes 结果。

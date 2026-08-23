@@ -1,8 +1,13 @@
 # PyTorch Panoptic Segmentation Lab
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue)](pyproject.toml)
+[![CI](https://github.com/Doithoo/pytorch-panoptic-segmentation-lab/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [English](README.md) | [文档中心](docs/README.zh-CN.md) | [Kaggle 指南](docs/guides/kaggle.zh-CN.md) | [Cityscapes 指南](docs/guides/cityscapes.zh-CN.md)
 
 一个强调可读性与实验可复现性的 PyTorch 全景分割项目。基线模型同时预测语义类别、thing 中心热图和像素到中心的 offset，再把结果组合为 thing 实例与 stuff 区域。
+
+![合成数据原图、语义标签和全景 overlay](docs/assets/synthetic-panoptic-preview.png)
 
 > 项目状态：本地流程和安装包流程已有测试覆盖，确定性合成数据 Kaggle 参考任务也已成功完成。指标和证据见[参考运行](docs/recorded-run/README.zh-CN.md)。该结果是流程证据而不是真实数据 benchmark；内置 PQ 评估器适用于本项目“不含 crowd”的 mask 契约，不能替代具体数据集的 crowd 规则或官方评测服务器。
 
@@ -20,13 +25,19 @@
 - CPU 自动测试和带心跳、自动评估的 Kaggle T4 runner。
 - 保留官方 split、校验 raw/train ID 并导出 panoptic JSON/PNG 的 Cityscapes 转换器。
 
+## 适合谁
+
+本项目适合已经了解基础 Python、Tensor、loss 和梯度，但还没有完整做过全景分割流程的读者。最短路径使用合成数据并支持 CPU；Cityscapes 和 Kaggle 是独立的协议练习，不是入门前置条件。
+
 ## 快速开始
 
 ```bash
-uv sync --extra dev
+uv sync --locked --extra dev
 uv run python scripts/create_synthetic_data.py
 uv run panoptic-segment prepare-data --schema configs/synthetic_schema.yaml
 uv run panoptic-segment inspect-data
+uv run python scripts/preview_panoptic.py data/manifests/train.csv \
+  --output artifacts/dataset-preview.png --limit 4
 uv run panoptic-segment train --config configs/learning_minimal.yaml --dry-run
 uv run panoptic-segment train --config configs/learning_minimal.yaml
 ```
@@ -34,10 +45,13 @@ uv run panoptic-segment train --config configs/learning_minimal.yaml
 用验证集选出的 checkpoint 评估和预测：
 
 ```bash
-uv run panoptic-segment evaluate artifacts/learning-minimal/best.pt --split test
+uv run panoptic-segment evaluate artifacts/learning-minimal/best.pt --split test \
+  --output artifacts/learning-minimal/evaluation.json
 uv run panoptic-segment predict artifacts/learning-minimal/best.pt \
   data/raw/images/sample_0000.png --output artifacts/prediction
 ```
+
+报告 JSON 会包含 checkpoint hash、数据 identity、总体指标、每个评估样本一行的指标和最低 PQ 失败样本列表。
 
 一次预测会输出：
 
@@ -93,7 +107,7 @@ uv run panoptic-segment show-config --config configs/learning_minimal.yaml \
   --set data.batch_size=4 --set run_name=experiment-01
 ```
 
-输入高宽必须被 16 整除；schema 类别数和 ignore index 必须与 model/loss 一致。后处理参数属于保存配置的一部分，确保评估和预测遵守同一契约。
+训练输入尺寸必须被 16 整除，因为模型会进行四次下采样。原始图像可以是其他尺寸；训练变换会把它们 resize 到 `data.image_size`，预测时再把离散输出恢复到原图尺寸。schema 类别数和 ignore index 必须与 resolved model/loss 设置一致。后处理阈值属于保存配置的一部分，确保评估和预测遵守同一契约。
 
 完整字段见[配置参考](docs/reference/config-reference.zh-CN.md)。
 
@@ -122,6 +136,8 @@ kaggle kernels push -p docs/recorded-run/kaggle
 
 请选择 T4 或更新的 NVIDIA GPU。runner 会记录实际 Git commit 和 checkpoint SHA-256。发布 Cityscapes 或 COCO 真实结果前，还必须补充数据转换器、官方 split、数据集特定的 crowd/void 行为，并遵守数据许可。
 
+仓库还提供一个公开的小规模替代流程：[Kaggle Soccer 教程](docs/guides/kaggle-soccer.zh-CN.md) 会把视频/COCO 多边形标注转换为项目的三 mask 契约再训练。它是教学协议，不是官方 benchmark。
+
 完整流程见 [Kaggle 指南](docs/guides/kaggle.zh-CN.md)。
 
 ## 学习路径
@@ -134,6 +150,21 @@ kaggle kernels push -p docs/recorded-run/kaggle
 6. [评估、预测与边界](docs/tutorial/05-evaluation-and-inference.zh-CN.md)
 
 可从[完整学习路线](docs/tutorial/learning-path.zh-CN.md)开始，阅读源码时配合[代码导览](docs/concepts/code-tour.zh-CN.md)。
+
+## 仓库结构
+
+```text
+configs/                     教学、参考和 Cityscapes 配置
+docs/tutorial/               教程章节和可运行学习路线
+docs/guides/                 任务流程和 benchmark 边界
+docs/reference/              数据、指标、CLI、checkpoint 契约
+examples/                    target、head 和 workflow 小程序
+scripts/                     数据集、评估器和 Kaggle 编排
+src/panoptic_segmenter/      带类型标注的安装包
+tests/                       离线单元、集成和文档测试
+```
+
+请按[文档中心](docs/README.zh-CN.md)的意图选择入口。可以从[教程索引](docs/tutorial/README.zh-CN.md)开始，也可以直接阅读 [CLI 参考](docs/reference/cli.zh-CN.md)。
 
 ## 范围与限制
 

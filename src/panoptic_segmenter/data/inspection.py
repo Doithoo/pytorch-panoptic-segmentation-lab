@@ -53,6 +53,7 @@ def inspect_prepared_dataset(manifest_dir: str | Path, *, limit_per_split: int |
     counts: dict[str, int] = {}
     inspected = 0
     seen_ids: set[str] = set()
+    split_sample_ids: dict[str, list[str]] = {}
     for split in ("train", "valid", "test"):
         manifest = root / f"{split}.csv"
         if not manifest.is_file():
@@ -73,10 +74,30 @@ def inspect_prepared_dataset(manifest_dir: str | Path, *, limit_per_split: int |
             if sample_id in seen_ids:
                 issues.append(DataIssue(sample_id, "sample ID appears in more than one split"))
             seen_ids.add(sample_id)
+        split_sample_ids[split] = [row.get("sample_id", "<missing>") for row in rows]
         inspected_rows = rows if limit_per_split is None else rows[:limit_per_split]
         for row in inspected_rows:
             issues.extend(_inspect_row(manifest, row, schema))
             inspected += 1
+    group_file = metadata.get("group_file")
+    if group_file:
+        group_path = _resolve(root / "dataset.yaml", str(group_file))
+        if not group_path.is_file():
+            issues.append(DataIssue("dataset.yaml", f"missing group file: {group_file}"))
+        else:
+            group_map = _read_groups(group_path)
+            if set(group_map) != seen_ids:
+                issues.append(DataIssue("dataset.yaml", "group file sample IDs do not match manifests"))
+            split_groups = {
+                split: sorted({group_map[sample_id] for sample_id in sample_ids if sample_id in group_map})
+                for split, sample_ids in split_sample_ids.items()
+            }
+            for left_index, left in enumerate(("train", "valid", "test")):
+                for right in ("train", "valid", "test")[left_index + 1 :]:
+                    if set(split_groups[left]) & set(split_groups[right]):
+                        issues.append(DataIssue("dataset.yaml", f"group appears in both {left} and {right}"))
+            if metadata.get("split_groups") != split_groups:
+                issues.append(DataIssue("dataset.yaml", "declared split_groups do not match manifests"))
     if isinstance(declared_hashes, dict) and all(name in declared_hashes for name in ("train", "valid", "test")):
         source = schema_hash + "".join(str(declared_hashes[name]) for name in ("train", "valid", "test"))
         identity = hashlib.sha256(source.encode()).hexdigest()
@@ -128,6 +149,14 @@ def _inspect_row(manifest: Path, row: dict[str, str], schema: LabelSchema) -> li
         if len(class_ids) != 1:
             issues.append(DataIssue(sample_id, f"instance {instance_id} spans multiple semantic classes"))
     return issues
+
+
+def _read_groups(path: Path) -> dict[str, str]:
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    if not rows or not {"sample_id", "group_id"}.issubset(rows[0]):
+        return {}
+    return {row["sample_id"]: row["group_id"] for row in rows if row.get("sample_id") and row.get("group_id")}
 
 
 def _resolve(manifest: Path, value: str) -> Path:

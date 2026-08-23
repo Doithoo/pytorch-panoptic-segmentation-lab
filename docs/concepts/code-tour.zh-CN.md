@@ -9,11 +9,13 @@
 - `data/schema.py`：不可变类别和 thing/stuff 语义。
 - `data/manifest.py`：确定性配对、split、哈希和 identity。
 - `data/inspection.py`：解码后的标签完整性。
+- `data/registry.py`：命名数据集转换器 registry。
 - `data/dataset.py`：row 加载与 batch。
 - `data/transforms.py`：同步几何与训练 target。
 
 模型与优化：
 
+- `models/__init__.py`：模型 registry 和标准 factory 契约。
 - `models/panoptic_unet.py`：共享 encoder/decoder 和三头。
 - `training/losses.py`：semantic CE、center focal、thing-only offset L1。
 - `training/train.py`：loader、optimizer/scheduler、训练评估与恢复。

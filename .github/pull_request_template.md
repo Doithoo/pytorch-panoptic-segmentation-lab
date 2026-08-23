@@ -7,8 +7,9 @@ Describe the learner problem and the smallest behavior change that solves it.
 
 - [ ] Added a failing test before production behavior. / 生产代码前已添加失败测试。
 - [ ] `uv run ruff check .`
-- [ ] `uv run pytest`
-- [ ] `uv build && uv run twine check dist/*`
+- [ ] `uv run pytest --cov=panoptic_segmenter --cov-report=term-missing`
+- [ ] `uv run python -m build`
+- [ ] Package metadata and wheel smoke test pass in CI
 - [ ] No dataset, weight, credential, or cache is tracked. / 未跟踪数据、权重、凭据或缓存。
 
 ## Learning And Documentation / 学习与文档

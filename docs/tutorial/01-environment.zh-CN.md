@@ -10,7 +10,7 @@ uv run panoptic-segment --version
 make check
 ```
 
-`make check` 会执行 lint、格式检查、mypy、测试和构建。learning-minimal 不要求 GPU，可用 `--device cpu`、`mps` 或 `cuda` 明确选择。
+`make check` 会执行 lint、格式检查、mypy、测试、覆盖率报告和构建。learning-minimal 不要求 GPU，可用 `--device cpu`、`mps` 或 `cuda` 明确选择。
 
 CLI 职责：
 

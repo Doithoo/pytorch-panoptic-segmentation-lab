@@ -18,7 +18,7 @@ import torch
 from panoptic_segmenter.config import load_config
 from panoptic_segmenter.data import LabelSchema, default_label_schema, inspect_prepared_dataset
 from panoptic_segmenter.data.manifest import prepare_paired_dataset
-from panoptic_segmenter.evaluation.evaluate import evaluate_checkpoint
+from panoptic_segmenter.evaluation.evaluate import evaluate_checkpoint_detailed, write_evaluation_report
 from panoptic_segmenter.training.checkpoint import sha256_file
 from panoptic_segmenter.training.train import train_from_config
 
@@ -80,9 +80,17 @@ def main() -> int:
     report.raise_for_issues()
     print(json.dumps({"phase": "preflight", "gpu": gpu, "input": str(input_root), "splits": report.split_counts}))
     run_dir = train_from_config(config, resume=args.resume)
-    evaluation = evaluate_checkpoint(run_dir / "best.pt", split="test", device="cuda")
+    evaluation, per_image = evaluate_checkpoint_detailed(run_dir / "best.pt", split="test", device="cuda")
     evaluation_dir = run_dir / "evaluation"
     evaluation_dir.mkdir(exist_ok=True)
+    write_evaluation_report(
+        evaluation_dir / "evaluation_detailed.json",
+        run_dir / "best.pt",
+        "test",
+        "cuda",
+        evaluation,
+        per_image=per_image,
+    )
     safe_evaluation = _json_safe(evaluation)
     (evaluation_dir / "evaluation.json").write_text(
         json.dumps(safe_evaluation, indent=2, allow_nan=False), encoding="utf-8"

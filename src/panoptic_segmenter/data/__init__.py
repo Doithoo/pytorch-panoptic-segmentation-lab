@@ -14,7 +14,9 @@ from .cityscapes import (
 )
 from .dataset import PanopticDataset, panoptic_collate
 from .inspection import DataIssue, DataReport, inspect_prepared_dataset
+from .registry import available_converters, convert_dataset, register_converter
 from .schema import ClassDefinition, LabelSchema, PanopticTarget, default_label_schema
+from .soccer import convert_kaggle_soccer_dataset, rasterize_soccer_annotations, soccer_schema
 from .synthetic import create_synthetic_dataset
 
 __all__ = [
@@ -37,5 +39,11 @@ __all__ = [
     "write_cityscapes_panoptic_json",
     "write_cityscapes_panoptic_png",
     "inspect_prepared_dataset",
+    "available_converters",
+    "convert_dataset",
+    "register_converter",
+    "soccer_schema",
+    "convert_kaggle_soccer_dataset",
+    "rasterize_soccer_annotations",
     "panoptic_collate",
 ]

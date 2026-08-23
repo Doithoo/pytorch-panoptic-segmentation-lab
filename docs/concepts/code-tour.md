@@ -9,11 +9,13 @@ Data ownership:
 - `data/schema.py`: immutable class and thing/stuff meaning.
 - `data/manifest.py`: deterministic pairing, split allocation, hashes, identity.
 - `data/inspection.py`: decoded label integrity.
+- `data/registry.py`: named dataset converter registry.
 - `data/dataset.py`: row loading and batching.
 - `data/transforms.py`: synchronized geometry and training targets.
 
 Model and optimization:
 
+- `models/__init__.py`: model registry and standard factory contract.
 - `models/panoptic_unet.py`: shared encoder/decoder and three heads.
 - `training/losses.py`: semantic CE, center focal, thing-only offset L1.
 - `training/train.py`: loaders, optimizer/scheduler, fit/evaluate, resume.

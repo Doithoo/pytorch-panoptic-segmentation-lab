@@ -5,7 +5,7 @@
 Contributions should keep the learning path readable and experiment claims auditable.
 
 1. Create a focused branch and add tests for behavior changes.
-2. Run `make check` before opening a pull request.
+2. Run `make check` before opening a pull request. This includes coverage reporting.
 3. Do not commit datasets, large checkpoints, credentials, Kaggle tokens, or generated artifacts.
 4. Document new target fields, model outputs, metrics, configuration keys, and checkpoint fields in English and Simplified Chinese.
 5. Keep tutorials conceptual, guides procedural, references exact, and recorded runs evidence-based.

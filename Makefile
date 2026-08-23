@@ -1,4 +1,4 @@
-.PHONY: lint format typecheck test build check
+.PHONY: lint format typecheck test coverage build check
 
 lint:
 	uv run ruff check .
@@ -12,7 +12,10 @@ typecheck:
 test:
 	uv run pytest
 
+coverage:
+	uv run pytest --cov=panoptic_segmenter --cov-report=term-missing
+
 build:
 	uv run python -m build
 
-check: lint format typecheck test build
+check: lint format typecheck test coverage build

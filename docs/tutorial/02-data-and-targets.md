@@ -10,6 +10,10 @@ uv run panoptic-segment prepare-data --schema configs/synthetic_schema.yaml
 uv run panoptic-segment inspect-data
 ```
 
+The generated contact sheet below is the visual checkpoint for this stage: the source image, semantic colors, and panoptic overlay should agree before training.
+
+![Synthetic panoptic preview](../assets/synthetic-panoptic-preview.png)
+
 Preparation requires exact stem equality across `images`, `semantic`, and `instance`. It rejects duplicate stems, missing directories, invalid ratios, and a sample count too small for non-empty requested splits. A fixed seed shuffles IDs; each nonzero split receives at least one sample. Manifests store paths relative to their directory.
 
 `dataset.yaml` records format version, relative source root, seed, ratios, split counts, manifest hashes, schema hash, and a preparation identity. This identity binds resume to the prepared protocol; it does not claim to hash every source image byte.

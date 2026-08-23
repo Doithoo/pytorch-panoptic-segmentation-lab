@@ -2,7 +2,7 @@
 
 [English](kaggle.md) | [参考运行状态](../recorded-run/README.zh-CN.md)
 
-仓库提供的 kernel 无需附加 Kaggle Dataset，会完成固定 256 张合成图的参考运行。它验证非交互 GPU 与产物流程，不是真实数据 benchmark。
+仓库提供的 kernel 无需附加 Kaggle Dataset，会完成固定 256 张合成图的参考运行。对于小型公开数据教学流程，请使用 [Kaggle Soccer 指南](kaggle-soccer.zh-CN.md)，它会在训练前转换 `quantigoai/soccer-dataset`。合成流程验证非交互 GPU 与产物流程；两个流程都不是官方 benchmark。
 
 ## 准备
 
@@ -46,6 +46,7 @@ kaggle kernels output <username>/pytorch-panoptic-segmentation-lab-gpu \
 | `metrics.csv` | 20 行、有限 loss 分量和 validation 指标 |
 | `best.pt` / `last.pt` | 验证集最优与最终可恢复状态 |
 | `evaluation/evaluation.json` | 从 `best.pt` 自动生成的 test 摘要 |
+| `evaluation/evaluation_detailed.json` | checkpoint/data identity、每图指标和最低 PQ 样本 |
 | `evaluation/per_class.csv` | 每个 schema 类别的 PQ/SQ/RQ |
 
 把小型证据回填到 `docs/recorded-run/` 并更新中英文 README 和 Kaggle 页面链接，不提交大型 checkpoint。

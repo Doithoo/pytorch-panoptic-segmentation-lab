@@ -10,6 +10,10 @@ uv run panoptic-segment prepare-data --schema configs/synthetic_schema.yaml
 uv run panoptic-segment inspect-data
 ```
 
+下面的 contact sheet 是这一阶段的可视化检查点：训练前应确认原图、semantic 配色和 panoptic overlay 相互一致。
+
+![合成数据全景预览](../assets/synthetic-panoptic-preview.png)
+
 准备过程要求 `images`、`semantic`、`instance` 的 stem 完全一致，并拒绝重复 stem、缺目录、非法比例和无法形成非空 split 的样本数。固定 seed 打乱 ID，每个非零 split 至少得到一个样本，manifest 使用相对路径。
 
 `dataset.yaml` 记录格式版本、相对数据根、seed、比例、split 数、manifest 哈希、schema 哈希和准备身份。该身份用于绑定恢复协议，但不声称逐字节哈希所有源图像。

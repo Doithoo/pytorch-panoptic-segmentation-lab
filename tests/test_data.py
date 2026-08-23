@@ -28,6 +28,27 @@ def test_prepare_data_creates_nonempty_portable_splits(tmp_path: Path) -> None:
     assert not inspect_prepared_dataset(manifests).issues
 
 
+def test_prepare_data_keeps_groups_together(tmp_path: Path) -> None:
+    raw, manifests = tmp_path / "raw", tmp_path / "manifests"
+    create_synthetic_dataset(raw, count=6, size=32)
+    with (raw / "groups.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=("sample_id", "group_id"))
+        writer.writeheader()
+        for index in range(6):
+            writer.writerow({"sample_id": f"sample_{index:04d}", "group_id": f"video-{index // 2}"})
+    prepare_paired_dataset(raw, manifests, schema=default_label_schema(), group_file=raw / "groups.csv")
+    assert not inspect_prepared_dataset(manifests).issues
+    split_groups: dict[str, set[str]] = {}
+    for split in ("train", "valid", "test"):
+        with (manifests / f"{split}.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        split_groups[split] = {f"video-{int(row['sample_id'].split('_')[-1]) // 2}" for row in rows}
+    assert sum(len(groups) for groups in split_groups.values()) == 3
+    assert not (split_groups["train"] & split_groups["valid"])
+    assert not (split_groups["train"] & split_groups["test"])
+    assert not (split_groups["valid"] & split_groups["test"])
+
+
 def test_prepare_data_rejects_unmatched_stems(tmp_path: Path) -> None:
     raw = tmp_path / "raw"
     create_synthetic_dataset(raw, count=3, size=32)
