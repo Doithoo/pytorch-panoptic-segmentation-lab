@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 REPOSITORY = "https://github.com/Doithoo/pytorch-panoptic-segmentation-lab.git"
-REVISION = os.environ.get("PANOPTIC_REVISION", "main")
+REVISION = "b2a19ca201cac39d9f77de2deea64df4b259199b"
 WORKING = Path("/kaggle/working")
 PROJECT = WORKING / "pytorch-panoptic-segmentation-lab"
 RAW_DATA = Path("/kaggle/input")
