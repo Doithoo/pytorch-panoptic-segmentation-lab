@@ -2,68 +2,98 @@
 
 [简体中文](learning-path.zh-CN.md) | [Documentation](../README.md)
 
-This 8–12 hour path assumes basic tensors, convolutions, and gradient descent. Complete each command and explain its output before starting the Kaggle run.
+This path takes about 8-12 hours for someone who knows basic tensors, convolutions, and gradient descent. It starts with generated images, then moves to a public annotated video dataset. Stop after any step if you want to inspect the code in more detail.
 
-## 1. Verify the environment
+## 1. Get a working environment
 
 ```bash
-uv sync --extra dev
+uv sync --locked --extra dev
 uv run panoptic-segment --version
 uv run panoptic-segment show-config --config configs/learning_minimal.yaml
 make check
 ```
 
-Identify image size, sample limits, three loss weights, post-processing limits, device, and best metric in the resolved configuration.
+Open the printed configuration and find the input size, sample limits, loss weights, post-processing thresholds, device, and metric used to choose `best.pt`.
 
-## 2. Inspect the target contract
+## 2. Look at the labels before the model
 
 ```bash
 uv run python scripts/create_synthetic_data.py --count 24 --size 128
 uv run panoptic-segment prepare-data --schema configs/synthetic_schema.yaml
 uv run panoptic-segment inspect-data
+uv run python scripts/preview_panoptic.py data/manifests/train.csv \
+  --output artifacts/learning-preview.png --limit 4
 uv run python examples/01_panoptic_target.py
 ```
 
-Explain why semantic is `[H,W]`, center is `[H,W]`, offset is `[2,H,W]`, and instance is not fed directly to the model. Check that thing pixels have positive instance IDs while stuff and void use zero.
+Answer these questions:
 
-## 3. Follow one model update
+- What does `semantic[y, x]` store?
+- Why is a thing pixel required to have a positive instance ID?
+- Why does the instance mask not go into the model as an input?
+- What do the center heatmap and the two offset channels point to?
+
+Do not continue until the preview colors, object boundaries, and instance IDs make sense.
+
+## 3. Run one update
 
 ```bash
 uv run python examples/02_model_contract.py
 uv run panoptic-segment train --config configs/learning_minimal.yaml --dry-run
 ```
 
-The dry run performs forward, finite-loss validation, backward, gradient clipping, and one optimizer step. It does not publish a normal checkpoint or metric.
+Read the output shapes, then trace the call from the CLI to the model, loss, backward pass, and optimizer step. The dry run is a connection check; it is not a quality measurement.
 
-## 4. Complete and inspect a run
+## 4. Train and inspect the files
 
 ```bash
 uv run panoptic-segment train --config configs/learning_minimal.yaml
 ```
 
-Read `config.yaml`, `run.yaml`, `metrics.csv`, `best.pt`, and `last.pt` in that order. Explain why best and last can be different and why test data must not select the checkpoint.
+Open these files in order:
 
-## 5. Evaluate and return to pixels
+1. `config.yaml`: what settings were used;
+2. `run.yaml`: which software, device, revision, and data fingerprint were recorded;
+3. `metrics.csv`: how loss and validation metrics changed;
+4. `best.pt`: the validation-selected checkpoint;
+5. `last.pt`: the latest checkpoint used for resume.
+
+Explain why `best.pt` and `last.pt` can differ, and why the test split must not choose the checkpoint.
+
+## 5. Compare numbers with pixels
 
 ```bash
-uv run panoptic-segment evaluate artifacts/learning-minimal/best.pt --split test
+uv run panoptic-segment evaluate artifacts/learning-minimal/best.pt --split test \
+  --output artifacts/learning-minimal/evaluation.json
 uv run panoptic-segment predict artifacts/learning-minimal/best.pt \
-  data/raw/images/sample_0000.png
+  data/raw/images/sample_0000.png --output artifacts/prediction
 ```
 
-Compare overall PQ with `pq_thing` and `pq_stuff`, then inspect the color mask and overlay. A low PQ can come from semantic errors, missed centers, duplicate centers, poor offsets, or area filtering.
+Compare `pq`, `pq_thing`, and `pq_stuff`. Then inspect the semantic-color and overlay images. When PQ is low, look separately for wrong classes, missing or duplicate centers, bad offsets, merged objects, split objects, and area filtering.
 
-## 6. Resume one controlled experiment
+## 6. Change one thing and resume
 
 ```bash
 uv run panoptic-segment train --config configs/learning_minimal.yaml \
   --set train.epochs=4 --resume artifacts/learning-minimal/last.pt
 ```
 
-Resume restores model, optimizer, scheduler, scaler, RNG, metric history, and best value. Changing the model, loss, post-processing, schema, or data identity is rejected.
+The checkpoint restores model and optimizer state, scheduler state, random-number state, metric history, and the previous best value. It rejects changes that would make the resumed run use different labels, targets, post-processing, or data membership.
 
-## 7. Submit the Kaggle reference job
+## 7. Use a real public dataset
 
-Follow the [Kaggle guide](../guides/kaggle.md). The first job uses deterministic synthetic data to prove the non-interactive GPU workflow. Treat it as systems evidence, not a real-world benchmark.
+Follow [Kaggle Soccer](../guides/kaggle-soccer.md). The converter starts with videos and COCO polygons, extracts frames, writes semantic and instance masks, creates a split by source video, and then reuses the same training commands.
 
-You are ready to extend the project when you can explain Gaussian center supervision, thing-only offsets, void handling, per-class PQ accumulation, validation selection, safe checkpoint loading, and the difference between a workflow record and a benchmark claim.
+The recorded run reaches test PQ `0.223444`; thing PQ is `0.000000`. That result is useful because it shows what a small from-scratch model fails to learn. Read the per-class file and worst-case report before changing the model.
+
+## 8. Extend the project
+
+Once you can trace one sample from source annotation to prediction image, try one change:
+
+- add a class to the schema;
+- change the data converter;
+- register another model;
+- adjust one post-processing value;
+- compare two runs with the same split and seed.
+
+Use the guides and reference pages when you need exact field names or compatibility rules.

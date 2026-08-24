@@ -1,6 +1,6 @@
 {
   "id": "yashowhoo/pytorch-panoptic-segmentation-lab-gpu",
-  "title": "PyTorch Panoptic Segmentation Lab GPU",
+  "title": "PyTorch Panoptic Segmentation - Synthetic GPU Run",
   "code_file": "run_kaggle.py",
   "language": "python",
   "kernel_type": "script",

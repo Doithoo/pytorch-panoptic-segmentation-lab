@@ -1,35 +1,31 @@
-# PyTorch Panoptic Segmentation Lab
+# PyTorch 全景分割
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue)](pyproject.toml)
 [![CI](https://github.com/Doithoo/pytorch-panoptic-segmentation-lab/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
-[English](README.md) | [文档中心](docs/README.zh-CN.md) | [Kaggle 指南](docs/guides/kaggle.zh-CN.md) | [Cityscapes 指南](docs/guides/cityscapes.zh-CN.md)
 
-一个强调可读性与实验可复现性的 PyTorch 全景分割项目。基线模型同时预测语义类别、thing 中心热图和像素到中心的 offset，再把结果组合为 thing 实例与 stuff 区域。
+[English](README.md) | [文档目录](docs/README.zh-CN.md) | [Kaggle Soccer](docs/guides/kaggle-soccer.zh-CN.md) | [Cityscapes](docs/guides/cityscapes.zh-CN.md)
 
-![合成数据原图、语义标签和全景 overlay](docs/assets/synthetic-panoptic-preview.png)
+通过一个可以直接运行和修改的 PyTorch 项目学习全景分割。模型预测语义类别、对象中心和像素到中心的偏移量，解码器再把这些输出组合为可数对象（thing）和不可数区域（stuff）。
 
-> 项目状态：本地流程和安装包流程已有测试覆盖，确定性合成数据 Kaggle 参考任务已成功完成，并已记录公开 Kaggle Soccer 教学运行。详见[合成数据运行](docs/recorded-run/README.zh-CN.md)和 [Kaggle Soccer 运行](docs/recorded-run/kaggle-soccer/README.zh-CN.md)。这些是流程和教学证据，不是官方 benchmark；内置 PQ 评估器适用于本项目“不含 crowd”的 mask 契约，不能替代具体数据集的 crowd 规则或官方评测服务器。
+![合成数据原图、语义标签和全景叠加图](docs/assets/synthetic-panoptic-preview.png)
 
-## 已实现能力
+这里不只提供模型代码，还包括标签转换、数据划分、训练前检查、同步数据增强、监督目标构建、训练、断点恢复、PQ 评估、单图预测和运行记录。
 
-- semantic、center heatmap、offset 三头 Panoptic U-Net。
-- 同步几何变换和 Gaussian 中心监督。
-- thing-only offset mask 与稀疏关键点 focal center loss。
-- 有中心数量上限、类别约束和面积过滤的后处理。
-- 先按类别累计再宏平均的 PQ/SQ/RQ，以及 thing/stuff 分项。
-- 确定性 manifest、数据身份和全景标签预检。
-- `weights_only=True`、原子写入、带版本且可恢复的 checkpoint。
-- 完整配置、训练历史、运行环境、Git revision 和数据身份记录。
-- 原始 semantic/instance mask、语义配色图和全景 overlay。
-- CPU 自动测试和带心跳、自动评估的 Kaggle T4 runner。
-- 保留官方 split、校验 raw/train ID 并导出 panoptic JSON/PNG 的 Cityscapes 转换器。
+## 选择一条路线
 
-## 适合谁
+| 路线 | 数据 | 适合解决的问题 |
+|---|---|---|
+| [合成数据快速开始](#合成数据快速开始) | 本地生成 | 在 CPU 上看懂张量，并确认整条流程可以运行 |
+| [Kaggle Soccer](docs/guides/kaggle-soccer.zh-CN.md) | 公开视频和多边形标注 | 学习如何把原始标注转换为 mask、按视频划分数据并在 GPU 上训练 |
+| [Cityscapes](docs/guides/cityscapes.zh-CN.md) | 需要接受许可条款的官方数据 | 学习 train ID 映射、官方数据划分、crowd 处理和官方评估 |
+| [自己的数据](docs/guides/using-your-data.zh-CN.md) | 自备图像和标签 | 调整数据格式和类别定义 |
 
-本项目适合已经了解基础 Python、Tensor、loss 和梯度，但还没有完整做过全景分割流程的读者。最短路径使用合成数据并支持 CPU；Cityscapes 和 Kaggle 是独立的协议练习，不是入门前置条件。
+合成数据和 Soccer 的实测结果保存在 [`docs/recorded-run/`](docs/recorded-run/) 中。这些记录用于复现命令和分析输出，不代表 Cityscapes 或 COCO 排行榜成绩。
 
-## 快速开始
+## 合成数据快速开始
+
+准备 Python 3.10-3.12 和 [uv](https://docs.astral.sh/uv/)，然后执行：
 
 ```bash
 uv sync --locked --extra dev
@@ -42,7 +38,9 @@ uv run panoptic-segment train --config configs/learning_minimal.yaml --dry-run
 uv run panoptic-segment train --config configs/learning_minimal.yaml
 ```
 
-用验证集选出的 checkpoint 评估和预测：
+`--dry-run` 会实际执行前向计算、损失计算、反向传播、梯度裁剪和一次参数更新，但不会创建正式运行目录。两轮训练的结果写入 `artifacts/learning-minimal/`。
+
+评估验证集选出的 checkpoint，并对一张图像进行预测：
 
 ```bash
 uv run panoptic-segment evaluate artifacts/learning-minimal/best.pt --split test \
@@ -51,9 +49,7 @@ uv run panoptic-segment predict artifacts/learning-minimal/best.pt \
   data/raw/images/sample_0000.png --output artifacts/prediction
 ```
 
-报告 JSON 会包含 checkpoint hash、数据 identity、总体指标、每个评估样本一行的指标和最低 PQ 失败样本列表。
-
-一次预测会输出：
+预测会同时保存可供程序读取的 mask 和便于观察的图像：
 
 ```text
 sample_0000.semantic.png
@@ -62,118 +58,105 @@ sample_0000.semantic-color.png
 sample_0000.overlay.png
 ```
 
-## 数据契约
+## 数据格式
 
-每个样本由三份同 stem 文件构成：
+每个样本包含一张图像和两张同名 mask：
 
 ```text
 data/raw/
   images/sample_0001.png
-  semantic/sample_0001.png   # 连续 class ID 或 255
-  instance/sample_0001.png   # stuff/void 为 0，thing 为正整数
+  semantic/sample_0001.png   # 连续类别 ID，或 255
+  instance/sample_0001.png   # thing 使用正整数；stuff 和 void 使用 0
 ```
 
-每个正 instance ID 在一张图中只能对应一个 thing 类。thing 像素必须有正 instance ID，stuff 和 ignore 像素必须为 0。`prepare-data` 会拒绝 stem 不匹配并生成使用相对路径的 manifest；`inspect-data` 会检查解码、尺寸、标签、实例关系、split 数量和跨 split 重复 ID。
+在同一张图中，一个正整数 instance ID 只能属于一个 thing 类。thing 像素必须有正整数 instance ID，stuff 和忽略像素使用 0。`prepare-data` 负责配对文件并生成固定的数据清单；`inspect-data` 会检查图像解码、尺寸、类别 ID、实例 ID、划分数量、文件哈希和分组泄漏。
 
-适配真实数据前请先阅读[数据格式参考](docs/reference/data-format.zh-CN.md)。
+如果数据来自视频帧、相邻裁剪或同一场景，请向 `prepare-data --group-file` 传入包含 `sample_id,group_id` 的 CSV，确保相关样本不会被拆到不同数据集。细节见[数据格式参考](docs/reference/data-format.zh-CN.md)。
 
-## 训练产物
+## 更换数据或模型
 
-正常训练写入 `artifacts/<run_name>/`：
+使用新数据集时：
 
-| 文件 | 作用 |
+1. 把标签转换为上面的三目录格式。
+2. 在 schema YAML 中定义连续类别 ID、显示颜色和 `isthing`。
+3. 数据集有官方划分时沿用官方划分；样本之间有关联时按组划分。
+4. 训练前运行 `inspect-data`，并打开预览图人工检查。
+5. 设置 `data.manifest_dir`、`model.expected_num_classes` 和 `loss.ignore_index`。
+
+先阅读[使用自己的数据](docs/guides/using-your-data.zh-CN.md)。需要编写转换器时，再阅读[添加数据集](docs/guides/adding-datasets.zh-CN.md)。
+
+替换模型时，新模型必须返回：
+
+```text
+semantic [B,C,H,W]
+center   [B,1,H,W]
+offset   [B,2,H,W]
+```
+
+使用 `register_model()` 注册模型构造函数，添加对应配置，并测试 CPU 前向与反向计算。完整步骤见[添加模型](docs/guides/adding-models.zh-CN.md)。
+
+## 训练输出
+
+每次正式训练都会创建 `artifacts/<run_name>/`：
+
+| 文件 | 内容 |
 |---|---|
-| `config.yaml` | 本次运行实际使用的完整配置 |
-| `run.yaml` | Python/PyTorch/平台/设备、Git revision、数据身份和时间 |
-| `metrics.csv` | loss 分量、学习率、PQ/SQ/RQ、thing/stuff PQ |
-| `last.pt` | 最新模型以及 optimizer、scheduler、scaler、RNG、历史 |
+| `config.yaml` | 合并默认值、YAML 和命令行参数后的最终配置 |
+| `run.yaml` | Python、PyTorch、设备、Git revision、数据指纹和运行时间 |
+| `metrics.csv` | 各项损失、学习率、验证集 PQ/SQ/RQ、thing PQ 和 stuff PQ |
+| `last.pt` | 最新模型及 optimizer、scheduler、scaler、随机数状态和训练历史 |
 | `best.pt` | 按 `train.best_metric` 选出的 checkpoint |
 
-只允许恢复契约兼容的实验：
+增加训练轮数并从同一次运行继续：
 
 ```bash
 uv run panoptic-segment train --config configs/learning_minimal.yaml \
   --set train.epochs=4 --resume artifacts/learning-minimal/last.pt
 ```
 
-checkpoint 使用安全、带版本的加载器。对不可信文件不要绕开项目去调用 `weights_only=False`。
+加载器使用 `torch.load(..., weights_only=True)`，并检查 checkpoint 版本、模型配置、类别定义和数据指纹。不要对来源不可信的 checkpoint 关闭 `weights_only`。
 
-## 配置系统
+## 已记录的运行结果
 
-YAML 采用严格模式，未知字段会报错而不是静默忽略。命令行可覆盖单个值：
+| 运行 | 数据和划分 | 结果 |
+|---|---|---|
+| [合成数据 T4 运行](docs/recorded-run/README.zh-CN.md) | 256 张生成图像，固定划分为 205/26/25 | test PQ `0.853881` |
+| [Kaggle Soccer T4 运行](docs/recorded-run/kaggle-soccer/README.zh-CN.md) | CC-BY-SA-4.0 公开数据，按源视频划分 | test PQ `0.223444`，thing PQ `0.000000`，stuff PQ `0.391027` |
 
-```bash
-uv run panoptic-segment show-config --config configs/learning_minimal.yaml \
-  --set data.batch_size=4 --set run_name=experiment-01
-```
+Soccer 的对象分离效果很差，但这正是值得保留的结果。按类别和按图统计可以清楚看到：模型很快学会了球场和背景，却没有可靠地区分球员、足球和裁判。
 
-训练输入尺寸必须被 16 整除，因为模型会进行四次下采样。原始图像可以是其他尺寸；训练变换会把它们 resize 到 `data.image_size`，预测时再把离散输出恢复到原图尺寸。schema 类别数和 ignore index 必须与 resolved model/loss 设置一致。后处理阈值属于保存配置的一部分，确保评估和预测遵守同一契约。
+## 文档入口
 
-完整字段见[配置参考](docs/reference/config-reference.zh-CN.md)。
-
-## Cityscapes
-
-Cityscapes 支持保留官方 train/val split，把 `labelIds` 和 `instanceIds` 转换为项目契约：
-
-```bash
-uv run panoptic-segment convert-cityscapes \
-  --data-root /path/to/cityscapes --output-root data/cityscapes
-uv run panoptic-segment inspect-data --manifest-dir data/cityscapes
-```
-
-训练前请阅读 [Cityscapes 指南](docs/guides/cityscapes.zh-CN.md)。公开 Cityscapes test 标注不可用，项目会报告 validation，除非使用官方服务器。转换器还会生成可供 evaluator 使用的官方格式 panoptic JSON/PNG。
-
-## Kaggle GPU
-
-仓库提供一个不依赖外部 Dataset 的合成数据参考 kernel，用来证明源码获取、CUDA kernel、训练、checkpoint 重载、test 评估和产物导出能在一次非交互 Kaggle 任务中完成。
-
-```bash
-uv tool install kaggle
-kaggle auth login
-# 修改 docs/recorded-run/kaggle/kernel-metadata.json 中的账号
-kaggle kernels push -p docs/recorded-run/kaggle
-```
-
-请选择 T4 或更新的 NVIDIA GPU。runner 会记录实际 Git commit 和 checkpoint SHA-256。发布 Cityscapes 或 COCO 真实结果前，还必须补充数据转换器、官方 split、数据集特定的 crowd/void 行为，并遵守数据许可。
-
-仓库还提供一个公开的小规模替代流程：[Kaggle Soccer 教程](docs/guides/kaggle-soccer.zh-CN.md) 会把视频/COCO 多边形标注转换为项目的三 mask 契约再训练。它是教学协议，不是官方 benchmark。
-
-完整流程见 [Kaggle 指南](docs/guides/kaggle.zh-CN.md)。
-
-## 学习路径
-
-1. [Tensor 与 panoptic ID](docs/tutorial/00-basics.zh-CN.md)
-2. [环境和 CLI](docs/tutorial/01-environment.zh-CN.md)
-3. [数据、中心热图与 offset](docs/tutorial/02-data-and-targets.zh-CN.md)
-4. [Panoptic U-Net](docs/tutorial/03-panoptic-unet.zh-CN.md)
-5. [训练、产物和断点恢复](docs/tutorial/04-training.zh-CN.md)
-6. [评估、预测与边界](docs/tutorial/05-evaluation-and-inference.zh-CN.md)
-
-可从[完整学习路线](docs/tutorial/learning-path.zh-CN.md)开始，阅读源码时配合[代码导览](docs/concepts/code-tour.zh-CN.md)。
+| 你想了解什么 | 文档 |
+|---|---|
+| 应该从哪里开始？ | [教程目录](docs/tutorial/README.zh-CN.md)或[学习路线](docs/tutorial/learning-path.zh-CN.md) |
+| 一个样本如何经过各个模块？ | [运行流程](docs/concepts/how-it-works.zh-CN.md)和[代码导览](docs/concepts/code-tour.zh-CN.md) |
+| 命令有哪些参数？ | [CLI 参考](docs/reference/cli.zh-CN.md) |
+| 配置字段有什么作用？ | [配置参考](docs/reference/config-reference.zh-CN.md) |
+| 运行失败时如何排查？ | [故障排查](docs/guides/troubleshooting.zh-CN.md) |
 
 ## 仓库结构
 
 ```text
-configs/                     教学、参考和 Cityscapes 配置
-docs/tutorial/               教程章节和可运行学习路线
-docs/guides/                 任务流程和 benchmark 边界
-docs/reference/              数据、指标、CLI、checkpoint 契约
-examples/                    target、head 和 workflow 小程序
-scripts/                     数据集、评估器和 Kaggle 编排
-src/panoptic_segmenter/      带类型标注的安装包
-tests/                       离线单元、集成和文档测试
+configs/                     可直接运行的实验配置
+docs/tutorial/               按学习顺序组织的概念与实践
+docs/guides/                 常见任务的操作步骤
+docs/reference/              数据格式、配置、指标和 checkpoint 结构
+docs/recorded-run/           实测运行记录和小型结果文件
+examples/                    监督目标和模型输出的短程序
+scripts/                     转换、预览、评估和 Kaggle 命令
+src/panoptic_segmenter/      可安装的 Python 包
+tests/                       离线单元测试和端到端测试
 ```
 
-请按[文档中心](docs/README.zh-CN.md)的意图选择入口。可以从[教程索引](docs/tutorial/README.zh-CN.md)开始，也可以直接阅读 [CLI 参考](docs/reference/cli.zh-CN.md)。
+## 当前范围
 
-## 范围与限制
+仓库内置的是一个从头训练的小型 U-Net，适合跟踪完整流程和尝试受控修改，但它不是完整的 Panoptic-DeepLab 实现，也不以当前基准精度为目标。项目暂不包含预训练 backbone 和分布式训练。只有遵守 Cityscapes 或 COCO 的数据规则并使用官方评估器后，相关分数才适合与公开结果比较。
 
-当前基线刻意保持小型并从头训练。它用于展示完整工程契约，不宣称与原始 Panoptic-DeepLab 架构等价，也不宣称达到先进精度。项目当前没有预训练 backbone 或分布式训练。公开 Kaggle Soccer 教学运行已经记录，但官方 Cityscapes/COCO leaderboard 结果仍需要 benchmark evaluator 和具体评测政策。这些是明确的扩展方向，不是隐藏能力。
-
-运行全部质量门禁：
+运行全部本地检查：
 
 ```bash
 make check
 ```
 
-贡献应保持学习路径可读，为指标提供可手算测试，并同步记录新增 target/checkpoint 字段。详见 [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)。
+提交改动前请阅读 [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)。安全问题请按 [SECURITY.md](SECURITY.md) 私下报告，不要公开提交 issue。

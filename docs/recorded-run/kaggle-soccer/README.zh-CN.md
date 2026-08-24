@@ -6,7 +6,7 @@
 
 Kaggle kernel version 2 完成了完整的公开数据教学流程：源码 checkout、Soccer 视频/COCO 多边形转换、group-aware manifest 准备、CUDA preflight、训练、checkpoint 重载、test 评估和详细失败指标。
 
-这是教学证据，不是官方 benchmark。源数据集使用 CC-BY-SA-4.0，转换器使用 `frame_stride=5` 抽帧，train/valid/test 按源视频 group 切分。
+这次运行展示了完整的公开数据流程：源码 checkout、标注转换、按视频划分、CUDA 训练、checkpoint 重载、test 评估和逐图错误输出。它不是官方 benchmark。源数据集使用 CC-BY-SA-4.0，抽帧步长为 `frame_stride=5`，train/valid/test 按源视频划分。
 
 ## 结果
 
@@ -29,7 +29,7 @@ Kaggle kernel version 2 完成了完整的公开数据教学流程：源码 chec
 | 总耗时 | 149.5 秒 |
 | 最优 checkpoint SHA-256 | `3e0ea31a7f1482702752beea285f6fdd8c27b5bb7468f35e92a582e3ca4f2d08` |
 
-较低的 thing 分数和较高的 false positive 数量本身就是有价值的教学证据：当前从头训练的小模型能学习大范围 stuff 区域，但还不能可靠地区分球员、足球和裁判。这正是 center/offset target、后处理阈值和逐图报告需要帮助用户理解的失败类型。
+较低的 thing 分数和较高的 false positive 数量说明了一个具体失败：当前从头训练的小模型能学习大范围 stuff 区域，却不能分开球员、足球和裁判。可以从 center/offset 设置、后处理参数和逐图报告入手排查。
 
 ## 证据文件
 

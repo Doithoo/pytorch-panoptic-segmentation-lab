@@ -87,3 +87,18 @@ def test_external_github_links_stay_in_this_repository() -> None:
             if "github.com/" in url and "Doithoo/pytorch-panoptic-segmentation-lab" not in url:
                 wrong.append(f"{document.relative_to(root)} -> {url}")
     assert not wrong, "external GitHub links point outside this repository:\n" + "\n".join(wrong)
+
+
+def test_public_entry_pages_use_concrete_language() -> None:
+    root = Path(__file__).parents[1]
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    readme_zh = (root / "README.zh-CN.md").read_text(encoding="utf-8")
+    soccer = (root / "docs/guides/kaggle-soccer.md").read_text(encoding="utf-8")
+    soccer_zh = (root / "docs/guides/kaggle-soccer.zh-CN.md").read_text(encoding="utf-8")
+    assert readme.splitlines()[0] == "# PyTorch Panoptic Segmentation"
+    assert readme_zh.splitlines()[0] == "# PyTorch 全景分割"
+    for document in (readme, readme_zh, soccer, soccer_zh):
+        assert "teaching evidence" not in document.lower()
+        assert "workflow evidence" not in document.lower()
+        assert "完整契约" not in document
+        assert "教学证据" not in document

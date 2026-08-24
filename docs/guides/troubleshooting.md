@@ -2,21 +2,22 @@
 
 [简体中文](troubleshooting.zh-CN.md)
 
-| Symptom | Cause and action |
+| Symptom | What to check |
 |---|---|
-| `dataset stems do not match exactly` | Compare filenames in all three source folders; preparation never silently drops unmatched samples. |
-| `split is empty` | Add samples or change ratios; every requested split must be nonempty. |
-| thing/stuff preflight issue | Fix converter semantics; do not suppress the check. |
-| image size not divisible by 16 | use dimensions such as 128, 256, or `[256,512]`. |
-| class count/ignore mismatch | align config with prepared `schema.yaml`. |
-| run already exists | choose a new `run_name` or use a compatible `--resume`. |
-| resume identity/config mismatch | resume the original protocol; start a new run for a changed experiment. |
-| safe checkpoint load failure | file is corrupt, from an older schema, or requires unsafe pickle globals; do not switch to `weights_only=False` for untrusted input. |
-| CUDA unavailable | enable an accelerator and restart the process. |
-| CUDA kernel error on P100 | choose T4 or newer. |
-| CUDA OOM | lower batch size, image size, or base channels; avoid raising center top-k without profiling. |
-| PQ is zero but semantic looks plausible | inspect center heatmaps, threshold, offsets, thing flags, and minimum areas. |
-| predictions are void | no valid same-class center survived or region area was filtered. |
-| wheel CLI cannot find data | wheel defaults no longer require YAML, but training still requires prepared manifests in the configured path. |
+| `dataset stems do not match exactly` | Compare filenames in `images`, `semantic`, and `instance`. The preparer does not silently drop a file. |
+| `split is empty` | Add samples or change ratios. For grouped data, make sure there are enough groups. |
+| Group appears in two splits | Check `groups.csv`; one video, scene, patient, or source image must have one group ID. |
+| Thing/stuff inspection error | Fix the converter. Thing pixels need positive instance IDs; stuff and void pixels need zero. |
+| Image size is not divisible by 16 | Change the training `data.image_size` to values such as 128, 256, or `[256,512]`. Source images may have other sizes. |
+| Class count or ignore mismatch | Compare the config with `schema.yaml`. |
+| Run already exists | Choose a new `run_name` or resume its `last.pt`. |
+| Resume or evaluation identity mismatch | Use the original manifests and schema, or start a new run for the changed data. |
+| Checkpoint cannot be loaded | It may be corrupt or use another schema version. Do not switch to `weights_only=False` for an untrusted file. |
+| CUDA is unavailable | Select an accelerator and restart the process. |
+| P100 CUDA kernel error | Use a T4 or newer GPU. |
+| Out of memory | Lower batch size, training image size, or `base_channels`. |
+| PQ is zero but semantic output looks plausible | Inspect center peaks, threshold, offsets, thing flags, and area thresholds. |
+| Predictions are void | No same-class center survived, or the assigned region was filtered by area. |
+| Wheel command cannot find data | A wheel can show defaults from any directory, but training still needs prepared manifests at the configured path. |
 
-Run `inspect-data`, then a production `--dry-run`, before debugging a full job. Include resolved config, complete traceback, environment versions, and one nonprivate sample when reporting a bug.
+Before a long run, execute `inspect-data`, open a preview, and run `train --dry-run`. When reporting a failure, include the command, final config, traceback, Python/PyTorch versions, device, and one non-private sample.

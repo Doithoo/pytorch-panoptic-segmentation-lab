@@ -1,24 +1,42 @@
-# How the Pipeline Works
+# How One Sample Moves Through the Project
 
 [简体中文](how-it-works.zh-CN.md) | [Code tour](code-tour.md)
 
 ```text
-three source folders
-  -> deterministic manifests + schema + identity
-  -> full label preflight
-  -> synchronized resize/flip
-  -> semantic + Gaussian center + offset targets
-  -> PanopticUNet three-head outputs
-  -> weighted losses and optimizer
-  -> bounded class-aware decoding
-  -> per-class PQ accumulator
-  -> safe checkpoints, metrics, and visual outputs
+image + semantic mask + instance mask
+  -> fixed train/valid/test manifests
+  -> label and file checks
+  -> synchronized resize and horizontal flip
+  -> semantic, center-heatmap, and offset supervision
+  -> three model outputs
+  -> weighted losses and parameter updates
+  -> center detection and instance assignment
+  -> PQ/SQ/RQ calculation
+  -> checkpoints, metrics, and prediction images
 ```
 
-Preparation and training are deliberately separate. A manifest freezes split membership and gives every later stage one row contract. A schema freezes class order, thing/stuff meaning, colors, and ignore ID. The checkpoint embeds both resolved config and schema; evaluation does not infer them from filenames.
+## Before training
 
-Semantic prediction identifies classes. Center/offset prediction only resolves thing identity. This separation means a center cannot repair a wrong semantic class, and perfect semantic logits do not guarantee separated objects.
+`prepare-data` matches files by stem and writes CSV manifests. Once those files exist, every later command uses the same sample membership. If frames or crops are related, a group file keeps them in one split.
 
-Post-processing is part of experiment semantics. Center threshold, NMS kernel, top-k, and minimum areas affect PQ and are therefore configured and checkpointed rather than hidden CLI flags.
+`schema.yaml` defines class order, display colors, the ignore value, and whether each class is a thing or stuff class. `inspect-data` then opens the files and checks dimensions, label values, instance IDs, hashes, and split membership.
 
-Validation selects the model; test measures the selected model once. Run metadata and dataset identity make the result auditable. A completed pipeline is still not an official benchmark until its dataset conversion and evaluator match that benchmark's protocol.
+## During training
+
+The image and both masks receive the same resize and flip. Targets are created after this transform, so center coordinates and offsets use the resized pixel grid.
+
+The model has three outputs:
+
+- semantic logits answer which class each pixel belongs to;
+- the center heatmap locates thing instances;
+- offsets point each thing pixel toward its instance center.
+
+Semantic prediction and instance separation solve different parts of the problem. Correct semantic logits do not guarantee that two nearby people will be separated, and a good center prediction cannot repair the wrong semantic class.
+
+## After the forward pass
+
+Training combines semantic cross-entropy, center focal loss, and thing-only offset L1 loss. Validation runs after each epoch and selects `best.pt` using `train.best_metric`.
+
+For evaluation and prediction, the decoder finds center peaks, assigns thing pixels to same-class centers, removes regions below the configured area thresholds, and leaves stuff pixels with instance ID 0. Center threshold, NMS size, top-k, and area thresholds are saved in the checkpoint because changing them can change PQ.
+
+The test split is evaluated after model and threshold choices have been made on validation data. `run.yaml`, `config.yaml`, `dataset.yaml`, and the checkpoint hash make it possible to tell exactly which code, data split, and settings produced a result.

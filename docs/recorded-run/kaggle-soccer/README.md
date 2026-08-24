@@ -6,7 +6,7 @@
 
 Kaggle kernel version 2 completed a full public-data teaching run: source checkout, Soccer video/COCO polygon conversion, group-aware manifest preparation, CUDA preflight, training, checkpoint reload, test evaluation, and detailed failure metrics.
 
-This is teaching evidence, not an official benchmark. The source dataset is CC-BY-SA-4.0, the converter samples frames with `frame_stride=5`, and train/valid/test are split by source video group.
+This run shows a complete public-data path: source checkout, annotation conversion, grouped split, CUDA training, checkpoint reload, test evaluation, and per-image error output. It is not an official benchmark. The source dataset is CC-BY-SA-4.0; frames are sampled with `frame_stride=5` and split by source video.
 
 ## Result
 
@@ -29,7 +29,7 @@ This is teaching evidence, not an official benchmark. The source dataset is CC-B
 | Total elapsed | 149.5 seconds |
 | Best checkpoint SHA-256 | `3e0ea31a7f1482702752beea285f6fdd8c27b5bb7468f35e92a582e3ca4f2d08` |
 
-The low thing score and high false-positive count are useful teaching evidence: the small from-scratch baseline learns broad stuff regions but does not yet separate soccer players, balls, and referees reliably. This is exactly the kind of failure the center/offset targets, post-processing thresholds, and per-image report are intended to expose.
+The low thing score and high false-positive count show a concrete failure: this small from-scratch model learns broad stuff regions but does not separate soccer players, balls, and referees. Use the center/offset settings, post-processing values, and per-image report to investigate that failure.
 
 ## Evidence files
 

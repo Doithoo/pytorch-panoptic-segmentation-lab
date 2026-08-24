@@ -1,8 +1,8 @@
 # 添加模型
 
-[English](adding-models.md) | [模型契约](../tutorial/03-panoptic-unet.zh-CN.md) | [代码导览](../concepts/code-tour.zh-CN.md)
+[English](adding-models.md) | [模型输出](../tutorial/03-panoptic-unet.zh-CN.md) | [代码导览](../concepts/code-tour.zh-CN.md)
 
-当前训练循环要求模型提供三个输出 head：
+训练代码要求模型返回三个张量：
 
 ```python
 {
@@ -12,24 +12,30 @@
 }
 ```
 
-`H` 和 `W` 必须与变换后的训练图像一致，并被 16 整除。semantic 是 logits，center 会在 decoder 中经过 sigmoid，offset 是以 resize 后像素为单位的 `[dy, dx]` 预测。
+semantic 和 center 是 logits，解码器会对 center 使用 sigmoid。offset 两个通道表示缩放后训练图像像素单位的 `[dy, dx]`。`H` 和 `W` 必须被 16 整除。
 
-## 步骤
+## 添加实现
 
-1. 在 `src/panoptic_segmenter/models/` 下实现模型。
-2. 保持 forward 契约明确，加入无需下载权重的 CPU shape 和 backward 测试。
-3. 使用 `register_model()` 在模型 registry 中注册名称。
-4. 在 `configs/` 下增加完整 YAML 示例。
-5. 记录参数量、输入 stride、预训练权重行为和限制。
-6. 执行 dry-run 和合成数据端到端训练测试。
+1. 将模型放在 `src/panoptic_segmenter/models/` 下。
+2. 在输入分辨率返回上面三个命名张量。
+3. 使用 `register_model()` 注册构造函数。
+4. 在 `configs/` 下添加配置文件。
+5. 添加无需下载权重的 CPU shape 测试和 backward 测试。
+6. 执行 `train --dry-run` 和一次合成数据端到端测试。
 
-checkpoint 会在 resolved config 中保存模型名称。改变模型契约时必须做兼容性决策，通常需要新的 checkpoint schema 或明确的迁移规则。不要从 checkpoint 加载任意 import path；模型重建属于代码信任边界。
+构造函数会收到 `in_channels`、`num_classes` 和 `base_channels`。如果模型需要其他参数，增加明确的配置字段并通过构造函数传入，不要读取隐藏的全局状态。
+
+## 需要说明什么
+
+记录输入 stride、参数量、预计显存、预训练权重行为和已知失败模式。在模型说明页和配置示例中写出输出张量的 shape。
+
+checkpoint 会保存构造函数名称和模型设置。改变输出名称、张量含义或 target 单位都属于兼容性变更。应增加迁移方式或新的 checkpoint schema，不要让旧权重在新语义下静默加载。
 
 ## Review checklist
 
 - 已测试输出 key 和 shape。
-- CPU forward/backward 无需联网即可运行。
-- `Predictor` 能处理奇数尺寸源图像。
-- 不支持的输入尺寸会给出清晰错误。
-- 模型名、配置字段、README、CLI 参考和中文文档一致。
-- 参数量和速度声明包含硬件与输入尺寸。
+- CPU forward 和 backward 无需联网即可运行。
+- `Predictor` 能处理与训练尺寸不同的源图像。
+- 不支持的输入尺寸会给出有用的错误信息。
+- 模型名、配置字段、CLI 示例和两种语言的文档一致。
+- 性能数据注明测试设备和输入尺寸。

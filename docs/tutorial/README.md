@@ -15,4 +15,4 @@ Use the README for the shortest runnable workflow. Use this index to choose a ch
 
 A practical order is `00 -> 02 -> 03 -> 04 -> 05`. Keep chapter 01 nearby as a setup reference. Each chapter should end with a result you can run, inspect, or explain from the source.
 
-For task-oriented procedures, use the [guides](../README.md#perform-a-task). For exact contracts, use the [reference pages](../README.md#look-up-a-contract).
+For task-oriented procedures, use the [common tasks](../README.md#common-tasks). For exact fields and formulas, use the [reference pages](../README.md#reference).

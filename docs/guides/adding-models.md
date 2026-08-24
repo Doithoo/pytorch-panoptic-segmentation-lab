@@ -1,8 +1,8 @@
-# Adding A Model
+# Adding a Model
 
-[简体中文](adding-models.zh-CN.md) | [Model contract](../tutorial/03-panoptic-unet.md) | [Code tour](../concepts/code-tour.md)
+[简体中文](adding-models.zh-CN.md) | [Model outputs](../tutorial/03-panoptic-unet.md) | [Code tour](../concepts/code-tour.md)
 
-The current training loop expects one model with three output heads:
+The training loop expects a model that returns three tensors:
 
 ```python
 {
@@ -12,24 +12,30 @@ The current training loop expects one model with three output heads:
 }
 ```
 
-`H` and `W` must match the transformed training image and be divisible by 16. Semantic values are logits, center values are logits passed through sigmoid by the decoder, and offset values are `[dy, dx]` predictions in resized-pixel units.
+Semantic and center values are logits. The decoder applies sigmoid to the center output. Offset channels are `[dy, dx]` in pixels of the resized training image. `H` and `W` must be divisible by 16.
 
-## Steps
+## Add the implementation
 
-1. Add the model implementation under `src/panoptic_segmenter/models/`.
-2. Keep the forward contract explicit and add a CPU shape test plus a backward test with no downloaded weights.
-3. Register the name with `register_model()` in the model registry.
-4. Add a complete YAML example under `configs/`.
-5. Document parameter count, input stride, pretrained-weight behavior, and limitations.
-6. Run a dry-run and end-to-end synthetic training test.
+1. Put the model in `src/panoptic_segmenter/models/`.
+2. Return the three named tensors at the input resolution.
+3. Register a factory with `register_model()`.
+4. Add a configuration file under `configs/`.
+5. Add a CPU shape test and a backward test that does not download weights.
+6. Run `train --dry-run` and one synthetic end-to-end test.
 
-The checkpoint stores the model name in the resolved config. Changing a model contract requires a compatibility decision and usually a new checkpoint schema or a clear migration rule. Do not load arbitrary import paths from a checkpoint; model reconstruction is a code trust boundary.
+The factory receives `in_channels`, `num_classes`, and `base_channels`. If the model needs more settings, add explicit config fields and pass them through the factory; do not read hidden global state.
+
+## What to document
+
+State the input stride, parameter count, expected memory use, pretrained-weight behavior, and known failure modes. Include the output tensor shapes in the model page and config example.
+
+The checkpoint stores the factory name and model settings. Changing output names, tensor meanings, or target units is a compatibility change. Add a migration or a new checkpoint schema rather than silently loading old weights with new semantics.
 
 ## Review checklist
 
-- Output keys and shapes are tested.
-- CPU forward/backward works offline.
-- Odd source image sizes still work through `Predictor`.
-- The model rejects unsupported input sizes with a clear error.
-- The model name, config fields, README, CLI reference, and Chinese counterpart agree.
-- Parameter and speed claims include hardware and input dimensions.
+- Output keys and shapes have tests.
+- CPU forward and backward work offline.
+- `Predictor` handles source images whose dimensions differ from the training size.
+- Unsupported input sizes fail with a useful message.
+- Model name, config fields, CLI examples, and both language versions agree.
+- Performance claims include the device and input size used to measure them.

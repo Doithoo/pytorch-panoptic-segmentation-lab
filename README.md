@@ -1,35 +1,31 @@
-# PyTorch Panoptic Segmentation Lab
+# PyTorch Panoptic Segmentation
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue)](pyproject.toml)
 [![CI](https://github.com/Doithoo/pytorch-panoptic-segmentation-lab/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
-[简体中文](README.zh-CN.md) | [Documentation](docs/README.md) | [Kaggle guide](docs/guides/kaggle.md) | [Cityscapes guide](docs/guides/cityscapes.md)
 
-A readable, reproducible PyTorch project for learning panoptic segmentation end to end. The baseline predicts semantic classes, thing centers, and per-pixel center offsets, then combines them into thing instances and stuff regions.
+[简体中文](README.zh-CN.md) | [Documentation](docs/README.md) | [Kaggle Soccer](docs/guides/kaggle-soccer.md) | [Cityscapes](docs/guides/cityscapes.md)
 
-![Synthetic source, semantic labels, and panoptic overlays](docs/assets/synthetic-panoptic-preview.png)
+Learn panoptic segmentation by running and changing a complete PyTorch project. The model predicts semantic classes, object centers, and per-pixel offsets; the decoder turns those outputs into thing instances and stuff regions.
 
-> Project status: the local and packaged workflows are tested, the deterministic synthetic Kaggle reference job completed successfully, and a public Kaggle Soccer teaching run is recorded. See the [synthetic run](docs/recorded-run/README.md) and [Kaggle Soccer run](docs/recorded-run/kaggle-soccer/README.md). These are workflow and teaching evidence rather than official benchmark results; the built-in PQ evaluator covers this project's non-crowd mask contract and is not a replacement for dataset-specific crowd handling or an official benchmark server.
+![Synthetic source images, semantic labels, and panoptic overlays](docs/assets/synthetic-panoptic-preview.png)
 
-## What is included
+The repository covers the parts that are often omitted from a model-only example: label conversion, split generation, data checks, synchronized transforms, target construction, training, checkpoint resume, PQ evaluation, prediction, and run records.
 
-- Panoptic U-Net with semantic, center-heatmap, and offset heads.
-- Synchronized transforms and Gaussian center targets.
-- Thing-only offset supervision and focal center loss.
-- Bounded, class-consistent center assignment with configurable area filtering.
-- Class-wise PQ/SQ/RQ accumulation, void handling, and thing/stuff summaries.
-- Deterministic manifests, dataset identity, and panoptic-label preflight.
-- Safe `weights_only=True`, atomic, versioned checkpoints with resume state.
-- Resolved configuration, metrics history, environment metadata, and hashes.
-- Raw semantic/instance outputs, semantic colors, and panoptic overlays.
-- CPU tests and a Kaggle T4 reference runner with heartbeats and final evaluation.
-- An official-split Cityscapes converter with raw/train ID validation and panoptic JSON/PNG export.
+## Choose a route
 
-## Who this is for
+| Route | Data | What it is for |
+|---|---|---|
+| [Synthetic quick start](#synthetic-quick-start) | generated locally | Understand the tensors and verify the whole pipeline on CPU |
+| [Kaggle Soccer](docs/guides/kaggle-soccer.md) | public video and polygon annotations | Learn how raw annotations become masks, grouped splits, and a GPU training run |
+| [Cityscapes](docs/guides/cityscapes.md) | licensed official data | Study train-ID conversion, official splits, crowd handling, and official evaluation |
+| [Your own data](docs/guides/using-your-data.md) | images and labels you provide | Adapt the data format and class schema |
 
-This project is for readers who know basic Python, tensors, loss, and gradients but have not completed a panoptic segmentation workflow. The shortest path is synthetic and CPU-friendly; Cityscapes and Kaggle are separate protocol exercises, not prerequisites.
+The synthetic and Soccer runs are recorded under [`docs/recorded-run/`](docs/recorded-run/). They show reproducible commands and measured outputs; they are not Cityscapes or COCO leaderboard entries.
 
-## Quick start
+## Synthetic quick start
+
+Install Python 3.10-3.12 and [uv](https://docs.astral.sh/uv/), then run:
 
 ```bash
 uv sync --locked --extra dev
@@ -42,7 +38,9 @@ uv run panoptic-segment train --config configs/learning_minimal.yaml --dry-run
 uv run panoptic-segment train --config configs/learning_minimal.yaml
 ```
 
-Evaluate and predict from the validation-selected checkpoint:
+The dry run performs a real forward pass, loss calculation, backward pass, gradient clipping, and optimizer step without creating a normal run directory. The two-epoch training command writes its results to `artifacts/learning-minimal/`.
+
+Evaluate the selected checkpoint and predict one image:
 
 ```bash
 uv run panoptic-segment evaluate artifacts/learning-minimal/best.pt --split test \
@@ -51,9 +49,7 @@ uv run panoptic-segment predict artifacts/learning-minimal/best.pt \
   data/raw/images/sample_0000.png --output artifacts/prediction
 ```
 
-The optional JSON report includes the checkpoint hash, data identity, aggregate metrics, one row per evaluated sample, and the lowest-PQ failure shortlist.
-
-A prediction writes:
+Prediction produces machine-readable masks and two images for inspection:
 
 ```text
 sample_0000.semantic.png
@@ -62,118 +58,105 @@ sample_0000.semantic-color.png
 sample_0000.overlay.png
 ```
 
-## Data contract
+## Data format
 
-Each sample has three files with the same stem:
+Each sample uses one image and two masks with the same filename stem:
 
 ```text
 data/raw/
   images/sample_0001.png
   semantic/sample_0001.png   # contiguous class ID or 255
-  instance/sample_0001.png   # 0 for stuff/void, positive for things
+  instance/sample_0001.png   # positive ID for things; 0 for stuff and void
 ```
 
-Every positive instance ID must belong to exactly one thing class in one image. Thing pixels require a positive instance ID; stuff and ignored pixels require zero. `prepare-data` rejects unmatched stems and writes portable relative-path manifests. `inspect-data` validates decoded images, dimensions, labels, instances, split counts, and cross-split IDs.
+Within one image, a positive instance ID belongs to one thing class. Thing pixels need a positive instance ID; stuff and ignored pixels use zero. `prepare-data` pairs files and writes deterministic CSV manifests. `inspect-data` checks image decoding, dimensions, class IDs, instance IDs, split counts, file hashes, and group leakage.
 
-See [data format](docs/reference/data-format.md) before adapting a dataset.
+For video frames, neighboring crops, or repeated scenes, pass a `sample_id,group_id` CSV to `prepare-data --group-file` so related samples stay in one split. See the [data format reference](docs/reference/data-format.md).
 
-## Training artifacts
+## Change the data or model
 
-A normal run writes `artifacts/<run_name>/`:
+To use another dataset:
 
-| File | Purpose |
+1. Convert labels to the three-folder format above.
+2. Define contiguous class IDs, display colors, and `isthing` values in a schema YAML.
+3. Preserve official splits, or use grouped splitting when samples are related.
+4. Run `inspect-data` and open a preview before training.
+5. Set `data.manifest_dir`, `model.expected_num_classes`, and `loss.ignore_index`.
+
+Start with [Use your own data](docs/guides/using-your-data.md). Converter authors should also read [Adding a dataset](docs/guides/adding-datasets.md).
+
+A replacement model must return:
+
+```text
+semantic [B,C,H,W]
+center   [B,1,H,W]
+offset   [B,2,H,W]
+```
+
+Register its factory with `register_model()`, add a config, and test a CPU forward/backward pass. The full procedure is in [Adding a model](docs/guides/adding-models.md).
+
+## Training outputs
+
+Every normal run writes `artifacts/<run_name>/`:
+
+| File | Contents |
 |---|---|
-| `config.yaml` | Fully resolved settings used by the run |
-| `run.yaml` | Python/PyTorch/platform/device, Git revision, data identity, times |
-| `metrics.csv` | Loss components, learning rate, PQ/SQ/RQ, thing/stuff PQ |
-| `last.pt` | Latest resumable model, optimizer, scheduler, scaler, RNG, history |
+| `config.yaml` | Final values used after defaults, YAML, and CLI overrides are merged |
+| `run.yaml` | Python, PyTorch, device, Git revision, data fingerprint, and timing |
+| `metrics.csv` | Loss components, learning rate, validation PQ/SQ/RQ, thing PQ, and stuff PQ |
+| `last.pt` | Latest resumable model, optimizer, scheduler, scaler, RNG, and history |
 | `best.pt` | Checkpoint selected by `train.best_metric` |
 
-Resume only a compatible run:
+Resume the same run by increasing the epoch count:
 
 ```bash
 uv run panoptic-segment train --config configs/learning_minimal.yaml \
   --set train.epochs=4 --resume artifacts/learning-minimal/last.pt
 ```
 
-Checkpoint loading is safe and schema-versioned. Do not bypass the project loader with `weights_only=False` for untrusted files.
+The loader uses `torch.load(..., weights_only=True)` and checks checkpoint version, model settings, class schema, and data fingerprint. Do not disable `weights_only` for an untrusted checkpoint.
 
-## Configuration
+## Recorded runs
 
-YAML is strict: unknown fields fail instead of being ignored. Selected values can be overridden from the CLI:
+| Run | Data and split | Result |
+|---|---|---|
+| [Synthetic T4 run](docs/recorded-run/README.md) | 256 generated images, deterministic 205/26/25 split | test PQ `0.853881` |
+| [Kaggle Soccer T4 run](docs/recorded-run/kaggle-soccer/README.md) | public CC-BY-SA-4.0 data, split by source video | test PQ `0.223444`, thing PQ `0.000000`, stuff PQ `0.391027` |
 
-```bash
-uv run panoptic-segment show-config --config configs/learning_minimal.yaml \
-  --set data.batch_size=4 --set run_name=experiment-01
-```
+The Soccer result is intentionally included even though object separation is poor. Its per-class and per-image files show a realistic failure mode: broad field and background regions are learned much sooner than players, balls, and referees.
 
-Training input dimensions must be divisible by 16 because the model downsamples four times. Source images may have other dimensions; the training transform resizes them to `data.image_size`, and prediction restores discrete outputs to the original size.
+## Documentation
 
-See the [configuration reference](docs/reference/config-reference.md).
+| Question | Read |
+|---|---|
+| Where should I begin? | [Tutorial index](docs/tutorial/README.md) or [learning path](docs/tutorial/learning-path.md) |
+| How does one sample move through the code? | [How it works](docs/concepts/how-it-works.md) and [code tour](docs/concepts/code-tour.md) |
+| What does each command accept? | [CLI reference](docs/reference/cli.md) |
+| What does each config field mean? | [Configuration reference](docs/reference/config-reference.md) |
+| Why is a run failing? | [Troubleshooting](docs/guides/troubleshooting.md) |
 
-## Cityscapes
-
-Cityscapes support preserves its official train/val split and converts `labelIds` plus `instanceIds` into the project contract:
-
-```bash
-uv run panoptic-segment convert-cityscapes \
-  --data-root /path/to/cityscapes --output-root data/cityscapes
-uv run panoptic-segment inspect-data --manifest-dir data/cityscapes
-```
-
-Read the [Cityscapes guide](docs/guides/cityscapes.md) before training. Public Cityscapes test annotations are unavailable, so the project reports validation unless an official server is used. The converter also writes official-format panoptic JSON/PNG artifacts for optional evaluator integration.
-
-## Kaggle GPU
-
-The repository includes a no-dataset synthetic reference kernel. It is intended to prove that source retrieval, CUDA kernels, training, checkpoint reload, test evaluation, and artifact export all work in one non-interactive Kaggle job.
-
-```bash
-uv tool install kaggle
-kaggle auth login
-# Edit your account in docs/recorded-run/kaggle/kernel-metadata.json
-kaggle kernels push -p docs/recorded-run/kaggle
-```
-
-Use a T4 or newer NVIDIA GPU. The runner records the resolved Git commit and checkpoint SHA-256. Publishing a real Cityscapes or COCO result additionally requires a dataset converter, official split policy, dataset-specific crowd/void behavior, and compliance with that dataset's license.
-
-The repository also documents a public, small-scale alternative: the [Kaggle Soccer workflow](docs/guides/kaggle-soccer.md) converts video/COCO polygon annotations into the project's three-mask contract before training. It is a teaching protocol, not an official benchmark.
-
-Read the [complete Kaggle guide](docs/guides/kaggle.md).
-
-## Learning path
-
-1. [Tensors and panoptic IDs](docs/tutorial/00-basics.md)
-2. [Environment and CLI](docs/tutorial/01-environment.md)
-3. [Data, center heatmaps, and offsets](docs/tutorial/02-data-and-targets.md)
-4. [Panoptic U-Net](docs/tutorial/03-panoptic-unet.md)
-5. [Training, artifacts, and resume](docs/tutorial/04-training.md)
-6. [Evaluation, prediction, and limitations](docs/tutorial/05-evaluation-and-inference.md)
-
-Start with the [guided learning path](docs/tutorial/learning-path.md) or use the [code tour](docs/concepts/code-tour.md) when reading the implementation.
-
-## Repository map
+## Repository layout
 
 ```text
-configs/                     teaching, reference, and Cityscapes settings
-docs/tutorial/               guided chapters and runnable learning path
-docs/guides/                 task procedures and benchmark boundaries
-docs/reference/              exact data, metric, CLI, and checkpoint contracts
-examples/                    small programs for targets, heads, and workflow
-scripts/                     dataset, evaluator, and Kaggle orchestration
-src/panoptic_segmenter/      typed installed package
-tests/                       offline unit, integration, and documentation tests
+configs/                     runnable experiment configurations
+docs/tutorial/               concepts in learning order
+docs/guides/                 procedures for common tasks
+docs/reference/              exact formats, fields, metrics, and checkpoint layout
+docs/recorded-run/           measured runs and small result files
+examples/                    short programs for targets and model outputs
+scripts/                     conversion, preview, evaluation, and Kaggle commands
+src/panoptic_segmenter/      installable Python package
+tests/                       offline unit and end-to-end tests
 ```
 
-The [documentation index](docs/README.md) is organized by intent. Start with the [tutorial index](docs/tutorial/README.md) or go directly to the [CLI reference](docs/reference/cli.md).
+## Current scope
 
-## Scope and limitations
+The included model is a small U-Net trained from scratch. It is suitable for tracing the full pipeline and trying controlled changes, but it is not an implementation of the full Panoptic-DeepLab architecture and is not intended to reach current benchmark accuracy. Pretrained backbones and distributed training are not included. Cityscapes and COCO scores should only be compared after using their official data rules and evaluators.
 
-The baseline is intentionally small and trained from scratch. It demonstrates the complete contract but does not claim Panoptic-DeepLab architectural parity or state-of-the-art accuracy. The project currently has no pretrained backbone or distributed training. A public Kaggle Soccer teaching run is recorded, while an official Cityscapes/COCO leaderboard result still requires the benchmark evaluator and policy. These are explicit extension points, not hidden claims.
-
-Run all local quality gates with:
+Run all local checks with:
 
 ```bash
 make check
 ```
 
-Contributions should preserve readable contracts, include hand-checkable metric cases, and document any new checkpoint or target fields. See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Report security issues through [SECURITY.md](SECURITY.md), not a public issue.

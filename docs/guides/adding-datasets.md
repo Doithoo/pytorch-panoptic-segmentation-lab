@@ -1,4 +1,4 @@
-# Adding A Dataset Converter
+# Adding a Dataset Converter
 
 [简体中文](adding-datasets.zh-CN.md) | [Data format](../reference/data-format.md) | [Use your own data](using-your-data.md)
 

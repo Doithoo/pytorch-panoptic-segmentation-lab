@@ -2,47 +2,46 @@
 
 [English](README.md) | [Kaggle 指南](../guides/kaggle.zh-CN.md) | [参考配置](../../configs/reference_kaggle.yaml) | [Kaggle 页面](https://www.kaggle.com/code/yashowhoo/pytorch-panoptic-segmentation-lab-gpu)
 
-## 状态：已完成
+## 状态：完成
 
-确定性合成数据参考任务已在 Kaggle version 2 成功完成。它在一次非交互任务中验证源码 checkout、package 安装、CUDA 执行、数据准备、训练、checkpoint 重载、test 评估和产物导出。
+Kaggle version 2 在固定源码 revision 和 Tesla T4 上运行了仓库。它生成 256 张合成图像，准备数据清单，训练 20 轮，重新加载 `best.pt`，评估 test，并导出下面列出的文件。
 
-这只是流程证据，不是真实世界 benchmark。数据由仓库生成，指标遵守项目的 non-crowd 三 mask 契约，不能表述为 Cityscapes 或 COCO 性能。
+数据由仓库生成，因此这些数字只说明合成任务和项目的 non-crowd mask 规则，不代表 Cityscapes 或 COCO 结果。
 
 ## 结果
 
 | 项目 | 值 |
 |---|---:|
-| Kaggle version | 2 |
-| 硬件 | Tesla T4（分配 2 张，项目使用 1 张） |
+| Kaggle 版本 | 2 |
+| 硬件 | Tesla T4（分配 2 张卡，实际使用 1 张） |
 | Python / PyTorch | 3.12.13 / 2.10.0+cu128 |
 | 源码 revision | `f6fb554066d508f933fe220bf27c39ad2de04d8c` |
-| 数据 | 256 张确定性合成图，源尺寸 128x128 |
-| Split | train 205 / valid 26 / test 25 |
+| 数据 | 256 张生成图像，源尺寸 128x128 |
+| 划分 | train 205 / valid 26 / test 25 |
 | 模型 | Panoptic U-Net，base channels 32 |
-| 训练 | 20 epoch、AdamW、cosine、CUDA AMP |
-| 最佳 validation PQ | **0.865159**，epoch 20 |
+| 训练 | 20 轮、AdamW、cosine、CUDA AMP |
+| 最优 validation PQ | **0.865159**，第 20 轮 |
 | Test PQ | **0.853881** |
 | Test SQ / RQ | 0.973944 / 0.869757 |
 | Test PQ thing / stuff | **0.561655 / 0.999993** |
-| Test loss | 0.013969 |
 | Test TP / FP / FN | 96 / 55 / 4 |
-| 训练任务耗时 | 83.762 秒 |
-| 最佳 checkpoint SHA-256 | `30f7905f84fef4db783b6bca7185a1520f2fa5247fc80c23db7ca03c4d32a43a` |
+| 耗时 | 83.762 秒 |
+| 最优 checkpoint SHA-256 | `30f7905f84fef4db783b6bca7185a1520f2fa5247fc80c23db7ca03c4d32a43a` |
 
-stuff 分数很高而 thing 分数较低符合教学数据特征：大块背景更容易学习，对象分离更难。该结果用于检查流程和错误分解，不用于跨数据集比较模型质量。
+在这组合成数据中，stuff 比对象分离更容易学会。修改 center target、offset loss 或解码阈值时，应同时查看按类别指标和 overlay。
 
-## 证据文件
+## 文件
 
 | 文件 | 内容 |
 |---|---|
-| [`kaggle-run-summary.json`](kaggle-run-summary.json) | 状态、GPU、版本、split、test 摘要、checkpoint 哈希 |
-| [`reference-panoptic-unet/config.yaml`](reference-panoptic-unet/config.yaml) | 实际训练和后处理配置 |
-| [`reference-panoptic-unet/run.yaml`](reference-panoptic-unet/run.yaml) | 环境、数据身份、seed、时间和 best 指标 |
-| [`reference-panoptic-unet/metrics.csv`](reference-panoptic-unet/metrics.csv) | 全部 20 行训练/validation 指标 |
-| [`reference-panoptic-unet/evaluation/evaluation.json`](reference-panoptic-unet/evaluation/evaluation.json) | test 聚合指标 |
-| [`reference-panoptic-unet/evaluation/per_class.csv`](reference-panoptic-unet/evaluation/per_class.csv) | 类别级 PQ/SQ/RQ |
+| [`kaggle-run-summary.json`](kaggle-run-summary.json) | 状态、设备、版本、划分、指标和 checkpoint hash |
+| [`reference-panoptic-unet/config.yaml`](reference-panoptic-unet/config.yaml) | 实际训练和后处理参数 |
+| [`reference-panoptic-unet/run.yaml`](reference-panoptic-unet/run.yaml) | 环境、数据指纹、seed、耗时和选择指标 |
+| [`reference-panoptic-unet/metrics.csv`](reference-panoptic-unet/metrics.csv) | 全部训练和验证记录 |
+| [`reference-panoptic-unet/evaluation/evaluation.json`](reference-panoptic-unet/evaluation/evaluation.json) | Test 总体指标 |
+| [`reference-panoptic-unet/evaluation/per_class.csv`](reference-panoptic-unet/evaluation/per_class.csv) | 每类 PQ/SQ/RQ |
 
-checkpoint 不提交到仓库，需要时从 Kaggle 下载：
+checkpoint 不保存在 Git 中。需要查看 tensor 时，从 Kaggle 下载：
 
 ```bash
 kaggle kernels output yashowhoo/pytorch-panoptic-segmentation-lab-gpu \
@@ -51,8 +50,4 @@ kaggle kernels output yashowhoo/pytorch-panoptic-segmentation-lab-gpu \
 
 ## 复现
 
-提交文件是 [`kaggle/run_kaggle.py`](kaggle/run_kaggle.py) 和 [`kernel-metadata.json`](kaggle/kernel-metadata.json)，runner 固定到上面的源码 revision。创建新运行前应有意识地更新 revision 和 metadata，然后按 [Kaggle 指南](../guides/kaggle.zh-CN.md)执行。
-
-## 限制
-
-本次运行没有外部数据、crowd 标注或官方服务器 evaluator。真实 Cityscapes 结果仍需挂载许可源数据并完成已准备好的官方 runner；COCO 需要自己的 converter 和 evaluator 政策。
+提交的文件是 [`kaggle/run_kaggle.py`](kaggle/run_kaggle.py) 和 [`kernel-metadata.json`](kaggle/kernel-metadata.json)。提交新运行前，请更新其中固定的源码 revision。

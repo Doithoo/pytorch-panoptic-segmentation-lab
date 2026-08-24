@@ -1,4 +1,4 @@
-# Data Format and Prepared Metadata
+# Data Format and Run Metadata
 
 [简体中文](data-format.zh-CN.md) | [Use your own data](../guides/using-your-data.md)
 

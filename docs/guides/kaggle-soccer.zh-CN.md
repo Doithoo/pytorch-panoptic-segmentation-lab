@@ -1,8 +1,10 @@
-# 公共 Kaggle Soccer 流程
+# 公共 Kaggle Soccer 数据
 
-[English](kaggle-soccer.md) | [Kaggle GPU 指南](kaggle.zh-CN.md) | [数据格式](../reference/data-format.zh-CN.md)
+[English](kaggle-soccer.md) | [Kaggle GPU](kaggle.zh-CN.md) | [数据格式](../reference/data-format.zh-CN.md)
 
-公共 [`quantigoai/soccer-dataset`](https://www.kaggle.com/datasets/quantigoai/soccer-dataset) 是一个 CC-BY-SA-4.0 的小型教学数据集，包含三个短视频和 COCO 风格的多边形实例标注。它适合学习数据转换和训练，但不是官方 panoptic benchmark：帧来自视频，数据集没有 provider split，也没有本项目的 crowd 政策。
+公共 [`quantigoai/soccer-dataset`](https://www.kaggle.com/datasets/quantigoai/soccer-dataset) 包含三个短视频和 COCO 风格的多边形标注。它的规模适合第一次真实数据运行，也能让你看到模型示例通常省略的工作：读取标注格式、抽取视频帧、把多边形栅格化、确定类别含义，以及决定如何划分数据。
+
+该数据集使用 CC-BY-SA-4.0。请保留 attribution，不要提交下载包和抽取后的帧。
 
 ## 下载
 
@@ -13,24 +15,34 @@ kaggle datasets download -d quantigoai/soccer-dataset \
   -p data/external/soccer --unzip
 ```
 
-不要提交下载的压缩包或抽取后的帧。实验记录应保存 Kaggle 数据集引用、下载日期、许可证和源码 revision。
+## 转换标注
 
-## 转换
+转换器会抽取有标注的帧，并生成：
 
-转换器只抽取有标注的帧，把多边形栅格化，并生成项目的三目录契约。默认宽度控制本地存储，`--max-frames` 和 `--frame-stride` 控制教学流程规模。
+```text
+data/kaggle-soccer/
+  images/
+  semantic/
+  instance/
+  groups.csv
+  schema.yaml
+  source.json
+```
+
+学习时可以先限制输出宽度和帧数。下面的命令每隔 5 帧抽取一次，并覆盖三个源视频：
 
 ```bash
 uv run --with opencv-python-headless python scripts/convert_kaggle_soccer.py \
   data/external/soccer \
   --output data/kaggle-soccer \
   --max-frames 240 \
-  --frame-stride 3 \
+  --frame-stride 5 \
   --resize-width 512
 ```
 
-类别映射如下：
+源类别会按下面的方式映射：
 
-| 源类别 | 项目 ID | 类型 |
+| 源类别 | ID | 模型中的含义 |
 |---|---:|---|
 | Player | 0 | thing |
 | Ball | 1 | thing |
@@ -40,9 +52,9 @@ uv run --with opencv-python-headless python scripts/convert_kaggle_soccer.py \
 | Referee | 5 | thing |
 | Football Pitch Line | 6 | stuff |
 
-使用 group-aware split 时，`max-frames` 必须覆盖每个非空 split 至少一个完整 group；文档中的 240 帧示例会覆盖三个视频。只覆盖一个视频的小上限会被拒绝，而不是把该 group 泄漏到多个 split。
+一个 group 对应一个源视频。如果帧数上限只覆盖一个视频，按组切分就无法生成三个非空 split，程序会停止。这是为了防止相邻帧同时进入训练集和验证集。
 
-转换后准备 manifest：
+## 准备并检查
 
 ```bash
 uv run panoptic-segment prepare-data \
@@ -55,7 +67,9 @@ uv run python scripts/preview_panoptic.py data/kaggle-soccer/train.csv \
   --output artifacts/soccer-preview.png --limit 4
 ```
 
-## 训练
+训练前打开预览图，确认球场和背景颜色正确，球员使用正整数 instance ID，并查看 `dataset.yaml` 中是否每个 split 只包含一个视频 group。
+
+## 在 GPU 上训练
 
 ```bash
 uv run panoptic-segment train --config configs/kaggle_soccer.yaml \
@@ -63,28 +77,23 @@ uv run panoptic-segment train --config configs/kaggle_soccer.yaml \
   --set data.manifest_dir=data/kaggle-soccer \
   --device cuda
 uv run panoptic-segment evaluate artifacts/kaggle-soccer-panoptic-unet/best.pt \
-  --split valid --device cuda --output artifacts/kaggle-soccer-panoptic-unet/evaluation.json
+  --split valid --device cuda \
+  --output artifacts/kaggle-soccer-panoptic-unet/evaluation.json
 ```
 
-可以用 `--device cpu` 执行 dry-run。该流程的教学顺序是 `download -> convert -> validate -> preview -> train -> evaluate -> inspect failures`。
+只检查本地流程时，把 `--device cuda` 换成 `--device cpu`，并在训练命令上加 `--dry-run`。
 
-## Kaggle 执行
+## 在 Kaggle 上运行
 
-把公共数据集挂载到 Kaggle notebook 或私有 kernel。在 kernel 内转换，再对转换后的目录调用通用 runner：
+仓库在 `docs/recorded-run/kaggle-soccer/` 中提供了可以直接提交的 kernel。它会挂载公开数据集，执行转换，把 `groups.csv` 传给 manifest 生成器，在 T4 上训练，并保存逐图评估结果。
 
 ```bash
-uv run --with opencv-python-headless python scripts/convert_kaggle_soccer.py \
-  /kaggle/input/soccer-dataset \
-  --output /kaggle/working/soccer-contract \
-  --max-frames 240 --frame-stride 3 --resize-width 512
-python scripts/kaggle_train.py \
-  --input /kaggle/working/soccer-contract \
-  --schema configs/kaggle_soccer_schema.yaml \
-  --config configs/kaggle_soccer.yaml
+kaggle kernels push -p docs/recorded-run/kaggle-soccer
+kaggle kernels status yashowhoo/pytorch-panoptic-segmentation-lab-kaggle-soccer
 ```
 
-runner 会写出 CUDA preflight 日志、resolved artifacts、checkpoint hash、总体 test 指标和 per-class 指标。需要避免重复抽帧时，可以把转换后的输出作为私有 Kaggle Dataset 挂载到下一次运行。
+已记录的 version 2 使用 train `Batch 3`、validation `Batch 1`、test `Batch 2`，训练十轮后 validation PQ 为 `0.290397`，test PQ 为 `0.223444`。thing PQ 很低，适合从 center loss、图像尺寸、后处理阈值或模型宽度开始尝试改动。
 
-## 协议限制
+## 这个结果不能说明什么
 
-随机按帧切分可能让同一视频的相邻帧同时进入 train 和 validation。它适合学习流程，但不适合泛化结论。可信实验应在转换前按视频切分，或增加 group-aware manifest splitter。请保留数据集的 CC-BY-SA-4.0 attribution，不要把内部 non-crowd PQ 称为官方 benchmark 分数。
+该数据集没有官方 panoptic leaderboard 协议，三个视频 group 也不足以支撑强泛化结论。这次运行说明的是转换和训练路径可以工作，不代表模型在所有 Soccer 视频上的表现。

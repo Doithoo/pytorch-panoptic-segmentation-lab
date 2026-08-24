@@ -1,20 +1,28 @@
-# ADR 0001：可读的全景分割基线
+# ADR 0001：一个便于跟踪的轻量全景模型
 
 [English](0001-readable-panoptic-baseline.md)
 
 - 状态：已接受
 - 决策日期：2026-08-22
 
-## 背景
+## 要解决的问题
 
-项目需要在不依赖大型框架隐藏 target 契约的前提下，讲清语义与实例推理，并让 CPU/Kaggle 上的评估和产物可审计。
+第一次做全景分割时，需要看清标签如何变成监督目标、模型的三个输出如何组合成实例，以及指标如何计算。大型框架可以减少代码量，却容易把这些步骤藏起来。项目还要能在 CPU 和 Kaggle GPU 上运行，同时避免解码器的显存随中心数量无界增长。
 
 ## 决策
 
-采用 semantic、center、offset 三头轻量 U-Net；源标签使用独立 semantic/instance mask；同步几何后构建 Gaussian center；按同类别、中心数量受限的方式解码；在整个 split 内按类别累计 PQ。schema v1 不包含 crowd，并明确声明限制。
+使用带三个输出 head 的轻量 U-Net：
 
-采用严格 dataclass 配置、prepared-data identity、预检和带版本的 `weights_only=True` checkpoint。后处理属于保存的实验语义。先发布确定性合成 Kaggle 运行，再声明任何真实 benchmark。
+- semantic logits 负责类别预测；
+- center heatmap 负责定位 thing 实例；
+- 两个 offset 通道指向实例中心。
 
-## 影响
+输入格式把 semantic mask 和 instance mask 分开保存。图像和 mask 使用完全相同的几何变换，然后在变换后的像素网格上生成 Gaussian center 和 offset。解码时只使用同类别中心，并限制中心数量和区域最小面积。PQ 在整个 split 上按类别累计。
 
-实现可读，能用手工 tensor 测试；但它不等价于完整 Panoptic-DeepLab，没有 adapter 时也不能报告 crowd-aware Cityscapes/COCO 官方分数。未来 model registry 或 crowd schema 必须保持 checkpoint 重建和指标测试，必要时引入新的明确 schema version。
+格式 v1 不表达 crowd 区域。具体数据集的转换器和 evaluator 必须在这套基础格式之外处理 crowd 和 void 规则。
+
+每次运行都保存最终配置、数据指纹、环境、随机数状态和 checkpoint 状态。这样重新查看结果时不需要依赖命令历史。
+
+## 结果
+
+代码足够小，可以用手工 Tensor 和 CPU 测试逐步跟踪。它不是完整的 Panoptic-DeepLab 实现，也不以高精度为目标。新增模型或数据集时，应保持输出 shape、数据规则、checkpoint 重建方式和指标测试不变。改变这些含义时，需要提供迁移方式或新的 schema version。

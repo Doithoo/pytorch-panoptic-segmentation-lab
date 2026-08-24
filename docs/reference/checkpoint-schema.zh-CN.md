@@ -1,31 +1,43 @@
 # Checkpoint Schema v1
 
-[English](checkpoint-schema.md) | [训练教程](../tutorial/04-training.zh-CN.md)
+[English](checkpoint-schema.md) | [训练](../tutorial/04-training.zh-CN.md)
 
-只接受 schema version 1。保存先写唯一临时文件，再用 `os.replace` 发布；加载调用 `torch.load(..., weights_only=True)`，拒绝字段缺失或版本不兼容的 mapping。
+项目只接受 schema version 1。保存时先写临时文件，再用 `os.replace` 替换目标文件。加载使用 `torch.load(..., weights_only=True)`，缺少字段或字段版本不兼容时会拒绝加载。
 
-## 顶层字段
+## 字段
 
 | 字段 | 含义 |
 |---|---|
 | `schema_version` | 整数 `1` |
-| `config` | 完整 resolved config |
-| `schema` | 有序类别、thing、颜色、ignore |
-| `model_state` | tensor state dict |
-| `optimizer_state` | optimizer 参数组与 tensor |
-| `scheduler_state` | scheduler mapping 或 null |
-| `scaler_state` | CUDA GradScaler mapping，可为空 |
-| `epoch` | 最近完成 epoch |
-| `best_metric` | 截止该轮的最佳 validation 值 |
-| `metrics` | 完整 CSV row mapping 列表 |
-| `run_metadata` | Python/torch/平台/设备/CUDA/seed/Git revision |
-| `dataset_identity` | prepared schema/manifest identity |
-| `rng_state` | Python、NumPy、torch、可用 CUDA 状态 |
+| `config` | 本次实验的最终设置 |
+| `schema` | 有序类别、thing 标记、颜色和 ignore ID |
+| `model_state` | Tensor state dict |
+| `optimizer_state` | optimizer 状态 |
+| `scheduler_state` | scheduler 状态或 null |
+| `scaler_state` | CUDA scaler 状态，可能为空 |
+| `epoch` | 最近完成的 epoch |
+| `best_metric` | 当前为止最好的验证指标 |
+| `metrics` | 写入 `metrics.csv` 的各行记录 |
+| `run_metadata` | Python、torch、torchvision、平台、设备、seed 和 Git revision |
+| `dataset_identity` | prepared schema 和 manifest 的数据指纹 |
+| `rng_state` | 可用时保存 Python、NumPy、torch 和 CUDA 随机数状态 |
 
-预测只需 config/schema/model；恢复还需要 optimizer、scheduler、scaler、RNG、metrics 和 identity。
+预测需要 `config`、`schema` 和 `model_state`。恢复训练还需要 optimizer、scheduler、scaler、随机数状态、训练历史和数据指纹。
 
-恢复要求 schema、数据身份、model、loss、后处理、optimizer/scheduler/seed/AMP/梯度设置，以及尺寸、batch、增强、sigma、样本上限等数据语义一致。可增加 `train.epochs`，可改变数据/manifest 路径、worker 和 device；但必须使用配置运行目录内的 `last.pt`，以保持历史和旧 best 一致。
+## 恢复规则
 
-目标 metrics 会追加。已有运行目录中启动普通训练会失败，防止静默覆盖历史。
+恢复时必须保持 schema、数据指纹、模型、loss、后处理、optimizer、scheduler、seed、增强、target sigma、图像尺寸、batch size 和样本上限一致。可以增加 `train.epochs`。数据路径、worker 数量和设备属于运行参数，可以改变。
 
-请使用项目加载器，不可信 checkpoint 不要回退 `weights_only=False`。未来 external factory 必须单独定义代码信任边界和 checkpoint schema 决策。
+恢复必须使用配置运行目录中的 `last.pt`。普通训练不会覆盖已有的 metrics 文件。
+
+## 不可信文件
+
+使用项目加载器：
+
+```python
+from panoptic_segmenter.training.checkpoint import load_checkpoint
+
+checkpoint = load_checkpoint("artifacts/run/best.pt")
+```
+
+对于不是自己创建或检查过的 checkpoint，不要切换到 `weights_only=False`。模型重建会执行保存配置中指定的、当前环境里已安装的模型 factory。

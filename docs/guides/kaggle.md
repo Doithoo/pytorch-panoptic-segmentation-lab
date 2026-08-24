@@ -1,12 +1,17 @@
-# Complete Training on Kaggle
+# Complete a Kaggle GPU Run
 
-[简体中文](kaggle.zh-CN.md) | [Recorded-run status](../recorded-run/README.md)
+[简体中文](kaggle.zh-CN.md) | [Kaggle Soccer](kaggle-soccer.md) | [Recorded runs](../recorded-run/README.md)
 
-The supplied kernel completes a deterministic 256-image synthetic run without an attached Kaggle Dataset. For a small public-data teaching workflow, use the [Kaggle Soccer guide](kaggle-soccer.md), which converts `quantigoai/soccer-dataset` before training. The synthetic job validates the non-interactive GPU and artifact workflow; neither workflow is an official benchmark.
+The repository contains two Kaggle paths:
 
-## Prerequisites
+- the synthetic path below, which checks that the package, CUDA, training loop, checkpoint reload, and artifact export work together;
+- [Kaggle Soccer](kaggle-soccer.md), which starts from a public video dataset and exercises annotation conversion before training.
 
-Install the Kaggle CLI separately and authenticate:
+Neither path is an official Cityscapes or COCO benchmark.
+
+## Before submitting
+
+Install and sign in to the Kaggle CLI:
 
 ```bash
 uv tool install kaggle
@@ -14,7 +19,7 @@ kaggle auth login
 kaggle --version
 ```
 
-Push the repository changes to GitHub before submission because the kernel clones the repository. Open `docs/recorded-run/kaggle/kernel-metadata.json`, replace `your-username`, and keep GPU plus Internet enabled.
+Push the repository revision that the kernel should run. Open `docs/recorded-run/kaggle/kernel-metadata.json`, set your Kaggle username, and keep GPU and Internet enabled.
 
 ## Submit and monitor
 
@@ -23,15 +28,15 @@ kaggle kernels push -p docs/recorded-run/kaggle
 kaggle kernels status <username>/pytorch-panoptic-segmentation-lab-gpu
 ```
 
-The runner clones the repository, checks out `main` unless `PANOPTIC_REVISION` is set, records the resolved commit, installs the package, generates data, runs the CUDA preflight, trains, reloads `best.pt`, evaluates test, and writes a summary. For a permanent reference run, replace `REVISION` in `run_kaggle.py` with the pushed commit SHA before submission.
+The kernel clones the repository, checks out its pinned revision, installs the package, creates data, checks CUDA, trains, reloads `best.pt`, evaluates test, and writes a summary. Pin a full commit before keeping a result as a reference.
 
-Use a T4 or newer NVIDIA GPU. Do not select P100: current Kaggle PyTorch builds may not contain kernels for its `sm_60` compute capability. The runner performs a CUDA forward/backward operation, not only `torch.cuda.is_available()`.
+Use a T4 or newer GPU. Do not select P100 for current Kaggle PyTorch images; the CUDA build may not contain kernels for `sm_60`. The runner tests an actual CUDA forward and backward pass.
 
-A healthy log contains JSON phases for `source`, `preflight`, per-epoch lines, 60-second `training` heartbeats, and `complete`. A heartbeat means the process is alive; it does not mean an epoch has finished.
+The log includes source revision, preflight, epoch lines, periodic heartbeats, and completion. A heartbeat only means the process is still alive.
 
-## Download artifacts
+## Download the files
 
-After status becomes `COMPLETE`:
+After the status is `COMPLETE`:
 
 ```bash
 kaggle kernels output <username>/pytorch-panoptic-segmentation-lab-gpu \
@@ -40,41 +45,40 @@ kaggle kernels output <username>/pytorch-panoptic-segmentation-lab-gpu \
 
 Inspect:
 
-| File | Check |
+| File | What to check |
 |---|---|
-| `kaggle-run-summary.json` | complete status, GPU, source revision, duration, split counts, test metrics, checkpoint hash |
-| `artifacts/reference-panoptic-unet/config.yaml` | resolved CUDA/AMP/data/postprocess settings |
-| `run.yaml` | environment, data identity, Git revision, timings |
-| `metrics.csv` | 20 rows, finite component losses, validation metrics |
-| `best.pt` / `last.pt` | validation-selected versus final resumable state |
-| `evaluation/evaluation.json` | automatic test summary from `best.pt` |
-| `evaluation/evaluation_detailed.json` | checkpoint/data identity, per-image metrics, and lowest-PQ cases |
-| `evaluation/per_class.csv` | PQ/SQ/RQ row for every schema class |
+| `kaggle-run-summary.json` | device, source revision, duration, split counts, test metrics, checkpoint hash |
+| `config.yaml` | final data, model, loss, and post-processing values |
+| `run.yaml` | software versions, data fingerprint, Git revision, and timing |
+| `metrics.csv` | one row per epoch and validation metrics |
+| `best.pt` / `last.pt` | selected checkpoint and latest resumable checkpoint |
+| `evaluation/evaluation.json` | aggregate test metrics |
+| `evaluation/evaluation_detailed.json` | per-image metrics and lowest-PQ samples |
+| `evaluation/per_class.csv` | PQ/SQ/RQ for each class |
 
-Copy small evidence into `docs/recorded-run/`, update both recorded-run READMEs, and link the Kaggle page. Do not commit large checkpoints.
+Copy only small result files into `docs/recorded-run/`. Keep checkpoints and datasets in Kaggle output.
 
-## Run with your dataset
+## Use another dataset
 
-For the generic three-folder contract, attach one private Kaggle Dataset and call `scripts/kaggle_train.py --input /kaggle/input/<dataset>`. Supply the matching schema with `--schema` and a config whose class count and ignore ID agree.
+If the data already follows `images/`, `semantic/`, and `instance/`, attach it and run:
 
-Cityscapes and COCO source formats do not match the generic contract directly. A credible real-data result requires:
+```bash
+python scripts/kaggle_train.py \
+  --input /kaggle/input/<dataset> \
+  --schema configs/my_schema.yaml \
+  --config configs/my_config.yaml
+```
 
-1. a documented converter and mapping to contiguous IDs;
-2. official train/validation membership rather than random splitting;
-3. dataset-specific crowd/void semantics and official evaluator comparison;
-4. source identity and license-compliant distribution;
-5. per-class and visual error artifacts.
-
-Cityscapes test labels are not public, so report validation or use its official server. Never relabel validation as test.
+If the source uses videos, COCO JSON, Cityscapes IDs, or another annotation format, write the converter first. Keep the source license, class mapping, split rule, and evaluator separate from the training code.
 
 ## Common failures
 
-- `repository not found`: push the repository or correct `REPOSITORY`.
-- checkout failure: pin a commit that exists on the remote.
-- no CUDA: enable GPU and restart the kernel.
-- CUDA kernel failure on P100: choose T4 or newer.
-- OOM: lower batch size first, then image size or model width; center top-k already bounds decode memory.
-- resume mismatch: use the same prepared data/schema/config and only increase epochs.
-- `dataset stems do not match`: repair all three input folders before training.
+- Repository not found: push the repository or correct `REPOSITORY`.
+- Checkout failed: pin a commit that exists on GitHub.
+- CUDA unavailable: enable GPU and restart the kernel.
+- P100 kernel failure: choose a T4 or newer GPU.
+- Out of memory: lower batch size, image size, or `base_channels`.
+- Resume mismatch: use the same data, schema, and settings; only increase epochs.
+- Stem mismatch: repair the three input directories before training.
 
-The first published synthetic result proves reproducibility mechanics. Publish a real benchmark only after the additional protocol work above is complete.
+For public data with a real conversion step, use the [Kaggle Soccer guide](kaggle-soccer.md).

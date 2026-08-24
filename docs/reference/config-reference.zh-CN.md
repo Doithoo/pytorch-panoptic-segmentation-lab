@@ -8,8 +8,8 @@
 
 | 字段 | 默认 | 契约 |
 |---|---:|---|
-| `data.data_dir` | `data/raw` | 准备/编排使用的源数据位置 |
-| `data.manifest_dir` | `data/manifests` | prepared CSV、schema、metadata |
+| `data.data_dir` | `data/raw` | 准备数据时使用的源目录 |
+| `data.manifest_dir` | `data/manifests` | CSV 数据清单、schema 和元数据目录 |
 | `data.image_size` | `[256,256]` | `[高,宽]`，正数且被 16 整除；源图像会被 resize 到该网格 |
 | `data.batch_size` | `4` | 正整数 |
 | `data.num_workers` | `0` | 非负；恢复时可改变的运行参数 |
@@ -58,7 +58,7 @@
 | `postprocess.instance_area` | `16` | thing 最小像素数 |
 | `postprocess.stuff_area` | `64` | stuff 最小像素数 |
 
-`inspect-data --limit-per-split N` 会检查所有 split 的元数据和 hash，但每个 split 只解码前 `N` 行。长时间运行或发布结果前应使用默认的无限制模式。
+`inspect-data --limit-per-split N` 会检查所有 split 的元数据和 hash，但每个 split 只解码前 `N` 行。长时间运行前应使用默认的无限制模式。
 
 顶层 `device` 可为 `auto/cpu/cuda/mps`，`output_dir` 默认为 `artifacts`，`run_name` 默认为 `panoptic-unet-small`。CLI override 使用 YAML 类型：
 

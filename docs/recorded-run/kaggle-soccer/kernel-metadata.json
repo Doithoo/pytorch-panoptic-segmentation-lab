@@ -1,6 +1,6 @@
 {
   "id": "yashowhoo/pytorch-panoptic-segmentation-lab-kaggle-soccer",
-  "title": "PyTorch Panoptic Segmentation Lab Kaggle Soccer",
+  "title": "PyTorch Panoptic Segmentation - Kaggle Soccer",
   "code_file": "run_kaggle.py",
   "language": "python",
   "kernel_type": "script",

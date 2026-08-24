@@ -1,32 +1,33 @@
-# Code Tour
+# Source Code Tour
 
-[简体中文](code-tour.zh-CN.md) | [How it works](how-it-works.md)
+[简体中文](code-tour.zh-CN.md) | [How one sample moves through the project](how-it-works.md)
 
-Start at `cli.py`; it owns argument parsing only. `config.py` merges defaults, strict YAML, and typed CLI overrides, then validates cross-field ranges.
+Start with `cli.py` to see how a command enters the package. It only parses arguments; the work lives in the modules below.
 
-Data ownership:
+## Data
 
-- `data/schema.py`: immutable class and thing/stuff meaning.
-- `data/manifest.py`: deterministic pairing, split allocation, hashes, identity.
-- `data/inspection.py`: decoded label integrity.
-- `data/registry.py`: named dataset converter registry.
-- `data/dataset.py`: row loading and batching.
-- `data/transforms.py`: synchronized geometry and training targets.
+- `data/schema.py`: class IDs, colors, thing/stuff flags, and ignore value.
+- `data/manifest.py`: file pairing, random or grouped splits, hashes, and data fingerprint.
+- `data/inspection.py`: opens masks and checks their values and relationships.
+- `data/registry.py`: named dataset converter functions.
+- `data/dataset.py`: loads one manifest row and builds a batch.
+- `data/transforms.py`: resizes and flips the image and masks together, then builds targets.
+- `data/soccer.py`: converts the public Soccer video annotations.
 
-Model and optimization:
+## Model and training
 
-- `models/__init__.py`: model registry and standard factory contract.
-- `models/panoptic_unet.py`: shared encoder/decoder and three heads.
-- `training/losses.py`: semantic CE, center focal, thing-only offset L1.
-- `training/train.py`: loaders, optimizer/scheduler, fit/evaluate, resume.
-- `training/checkpoint.py`: safe atomic persistence, RNG, environment, hashes.
+- `models/__init__.py`: model registry and factory lookup.
+- `models/panoptic_unet.py`: encoder, decoder, and semantic/center/offset heads.
+- `training/losses.py`: semantic cross-entropy, center focal loss, and thing-only offset L1.
+- `training/train.py`: loaders, optimizer, scheduler, training loop, validation, and resume.
+- `training/checkpoint.py`: checkpoint fields, safe loading, RNG state, and run metadata.
 
-Result ownership:
+## Decode and results
 
-- `inference/postprocess.py`: bounded center extraction and panoptic decode.
-- `evaluation/metrics.py`: split-level per-class PQ statistics.
-- `evaluation/evaluate.py`: checkpoint-backed split evaluation.
-- `evaluation/visualization.py`: schema colors and instance overlays.
-- `inference/predictor.py`: saved-size preprocessing, model reload, exact-size exports.
+- `inference/postprocess.py`: center selection and same-class instance assignment.
+- `evaluation/metrics.py`: per-class PQ/SQ/RQ accumulation.
+- `evaluation/evaluate.py`: checkpoint loading, identity checks, aggregate metrics, and per-image reports.
+- `evaluation/visualization.py`: semantic colors and instance overlays.
+- `inference/predictor.py`: checkpoint-backed prediction and original-size output.
 
-Private helpers prefixed `_` are shared internally where necessary but are not a stable public API. Extensions should add explicit contracts rather than importing deeper private functions from application code.
+Functions whose names start with `_` are internal helpers. Code outside the package should use the CLI or the documented public functions rather than importing those helpers.
